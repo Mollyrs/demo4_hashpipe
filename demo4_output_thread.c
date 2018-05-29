@@ -1,9 +1,7 @@
 /*
  * demo4_output_thread.c
- * Get the data from output databuffer and then write them to file.
+ * Get the data from output databuffer and write them to a file in filterbank format.
  */
-
-
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
@@ -13,8 +11,7 @@
 #include "hashpipe.h"
 #include "demo4_databuf.h"
 #include "demo4_output_thread.h"
-//#include "filterbank.h"
-//#include "cuda.h"
+
 extern double MJD;
 
 static void *run(hashpipe_thread_args_t * args)
@@ -28,22 +25,22 @@ static void *run(hashpipe_thread_args_t * args)
 	int block_idx = 0;
 	uint64_t mcnt=0;
 	int f_full_flag = 1;
+	int N_files=0;
 	char f_fil[256];
-	struct tm        *now;
-	time_t           rawtime;
-    	double  FILE_SIZE_MB = 1; // MB
+	struct tm *now;
+	time_t rawtime;
+	double  FILE_SIZE_MB = 1000; // MB
 	double  FILE_SIZE_NOW_MB = 0;
-
 	FILE * demo4_file;
 	while (run_threads()) {
-
 		hashpipe_status_lock_safe(&st);
 		hputi4(st.buf, "OUTBLKIN", block_idx);
 		hputi8(st.buf, "OUTMCNT",mcnt);
+		hputi8(st.buf, "DATSAVMB",(FILE_SIZE_NOW_MB/1024/1024));
+		hputi4(st.buf, "NFILESAV",N_files);
 		hputs(st.buf, status_key, "waiting");
 		hashpipe_status_unlock_safe(&st);
-
-		// get new data
+		// check status of output databuf
 		while ((rv=demo4_output_databuf_wait_filled(db, block_idx))
 		!= HASHPIPE_OK) {
 		if (rv==HASHPIPE_TIMEOUT) {
@@ -57,60 +54,55 @@ static void *run(hashpipe_thread_args_t * args)
 				break;
 			}
 		}
-
+		// set status to processing
 		hashpipe_status_lock_safe(&st);
 		hputs(st.buf, status_key, "processing");
 		hashpipe_status_unlock_safe(&st);
-
-        if (f_full_flag ==1){
-            char    f_fil[256];
-            struct tm  *now;
-            time_t rawtime;
-
-            printf("\n\nopen new filterbank file...\n\n");
-            time(&rawtime);
+		// create a new filterbank file when first time or file size is full
+		if (f_full_flag ==1){
+			char    f_fil[256];
+			struct tm  *now;
+			time_t rawtime;
+			printf("\n\nopen new filterbank file...\n\n");
+			time(&rawtime);
 			now = localtime(&rawtime);
 			strftime(f_fil,sizeof(f_fil), "./data_%Y-%m-%d_%H-%M-%S.fil",now);
 			WriteHeader(f_fil,MJD);
+			N_files += 1;
+			f_full_flag = 0; // set file full flag to 0 after new file is created
 			printf("file name is: %s\n",f_fil);
 			printf("write header done!\n");
 			demo4_file=fopen(f_fil,"a+");
 			printf("starting write data...\n");	
-
-        }
-
-        FILE_SIZE_NOW_MB += SIZEOF_OUT_STOKES*sizeof(float)/1024/1024.0;
-	//printf("FILE_SIZE_NOW_MB is %lf\n",FILE_SIZE_NOW_MB);
-        if (FILE_SIZE_NOW_MB >= FILE_SIZE_MB){
+		}
+		FILE_SIZE_NOW_MB += SIZEOF_OUT_STOKES*sizeof(float)/1024/1024.0;
+		//printf("FILE_SIZE_NOW_MB is %lf\n",FILE_SIZE_NOW_MB);
+		if (FILE_SIZE_NOW_MB >= FILE_SIZE_MB){
 			f_full_flag = 1;
 			FILE_SIZE_NOW_MB = 0;
-        }
-        else{f_full_flag = 0;}
-
+		}else{f_full_flag = 0;}
 		fwrite(db->block[block_idx].Stokes_Full,sizeof(float),SIZEOF_OUT_STOKES,demo4_file);
 		demo4_output_databuf_set_free(db,block_idx);
 		block_idx = (block_idx + 1) % db->header.n_block;
 		mcnt++;
-
 		//Will exit if thread has been cancelled
 		pthread_testcancel();
-
 	}
 	fclose(demo4_file);
 	return THREAD_OK;
 }
 
 static hashpipe_thread_desc_t demo4_output_thread = {
-    name: "demo4_output_thread",
-    skey: "OUTSTAT",
-    init: NULL, 
-    run:  run,
-    ibuf_desc: {demo4_output_databuf_create},
-    obuf_desc: {NULL}
+	name: "demo4_output_thread",
+	skey: "OUTSTAT",
+	init: NULL, 
+	run:  run,
+	ibuf_desc: {demo4_output_databuf_create},
+	obuf_desc: {NULL}
 };
 
 static __attribute__((constructor)) void ctor()
 {
-  register_hashpipe_thread(&demo4_output_thread);
+	register_hashpipe_thread(&demo4_output_thread);
 }
 

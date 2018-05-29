@@ -2,14 +2,12 @@
 #include <stdio.h>
 #include "hashpipe.h"
 #include "hashpipe_databuf.h"
-//#include <cuda.h>
-//#include <cufft.h>
 
 //#define TEST_MODE		1	// for test
-#define CACHE_ALIGNMENT         512	// cache alignment size	
+#define CACHE_ALIGNMENT         256	// cache alignment size	
 #define N_INPUT_BLOCKS          3 	// number of input blocks
 #define N_OUTPUT_BLOCKS         3	// number of output blocks
-#define PAGE_SIZE	      	4096	// number of spectra per memory, define memory size
+#define PAGE_SIZE	      	(32768*8)	// number of spectra per memory, define memory size
 #define N_CHANS_PER_SPEC	4096	// number of FFT channels per spectrum
 #define N_BYTES_PER_SAMPLE	1	// number of bytes per sample
 #define N_BEAMS			1	// number of beams
@@ -19,10 +17,9 @@
 #define N_BYTES_HEAD		8	// number bytes of header in packets
 #define N_BYTES_PER_PKT		4104	// number bytes per packets
 #define N_BYTES_PKT_DATA	(N_BYTES_PER_PKT-N_BYTES_HEAD)
-#define ACC_LEN			1024 // accumulation length
-//#define ACC_LEN			16 // accumulation length
+#define ACC_LEN			512 // accumulation length
 #define SIZEOF_INPUT_DATA_BUF	N_BYTES_PKT_DATA*N_BYTES_PER_SAMPLE*PAGE_SIZE*N_PKTS_PER_SPEC
-#define SIZEOF_OUT_STOKES	PAGE_SIZE*N_CHANS_PER_SPEC
+#define SIZEOF_OUT_STOKES	PAGE_SIZE/ACC_LEN*N_CHANS_PER_SPEC
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[
   CACHE_ALIGNMENT - (sizeof(hashpipe_databuf_t)%CACHE_ALIGNMENT)

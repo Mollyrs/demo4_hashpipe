@@ -14,7 +14,7 @@ extern "C"{
 #include <sys/types.h>
 #include <unistd.h>
 #include "hashpipe.h"
-#include "demo4_databuf.h"
+// #include "demo4_databuf.h"
 #include "demo4_gpu_thread.h"
 #include <cuda.h>
 #include <cufft.h>
@@ -424,15 +424,17 @@ static void *run(hashpipe_thread_args_t * args)
     int curblock_out=0;
     
     int nhits = 0;
-	char *data_raw; // raw data will be feed to gpu thread
+    char *data_raw; // raw data will be feed to gpu thread
     data_raw = (char *)malloc(g_iSizeRead*sizeof(char));
     //float *full_stokes; // full stokes data returned from gpu thread
     //full_stokes = (float *)malloc(N_CHANS_PER_SPEC*N_IFS*sizeof(float));
-	int n_frames; // number of frames has been processed
+    int n_frames; // number of frames has been processed
 
     int iRet = EXIT_SUCCESS;
     int iSpecCount = 0;
     int iNumAcc = DEF_ACC;
+    if(iNumAcc > g_iSizeRead/g_iNFFT/4){iNumAcc=g_iSizeRead/g_iNFFT/4;} // if accumulation number larger than data buffer, setit to number spectra frames of buffer
+	int n_spec = 0; // number of spectrum
     int iProcData = 0;
     cudaError_t iCUDARet = cudaSuccess;
     struct timeval stStart = {0};
@@ -463,10 +465,10 @@ static void *run(hashpipe_thread_args_t * args)
         hashpipe_status_lock_safe(&st);
         hputi4(st.buf, "GPUBLKIN", curblock_in);
         hputs(st.buf, status_key, "waiting");
-        hputi4(st.buf, "GPUBKOUT", curblock_out);
-	hputi8(st.buf,"GPUMCNT",mcnt);
+       	hputi4(st.buf, "GPUBKOUT", curblock_out);
+		hputi8(st.buf,"GPUMCNT",mcnt);
         hashpipe_status_unlock_safe(&st);
-
+		n_spec = 0;
         // Wait for new input block to be filled
         while ((rv=demo4_input_databuf_wait_filled(db_in, curblock_in)) != HASHPIPE_OK) {
             if (rv==HASHPIPE_TIMEOUT) {
@@ -481,7 +483,7 @@ static void *run(hashpipe_thread_args_t * args)
             }
         }
 
-        // Got a new data block, update status and determine how to handle it
+        // Get a new data block, update status and determine how to handle it
         /*hashpipe_status_lock_safe(&st);
         hputu8(st.buf, "GPUMCNT", db_in->block[curblock_in].header.mcnt);
         hashpipe_status_unlock_safe(&st);*/
@@ -505,150 +507,151 @@ static void *run(hashpipe_thread_args_t * args)
         hputs(st.buf, status_key, "processing gpu");
         hashpipe_status_unlock_safe(&st);
 	
-	//get data from input databuf to local
-	memcpy(data_raw,db_in->block[curblock_in].data_block,g_iSizeRead*sizeof(char));
-	for(n_frames=0;n_frames < SIZEOF_INPUT_DATA_BUF/g_iSizeRead;n_frames++){
-	// write new data to the gpu buffer
-    	CUDASafeCallWithCleanUp(cudaMemcpy(g_pc4Data_d,
-                                       data_raw,
-                                       g_iSizeRead*sizeof(char),
-                                       cudaMemcpyHostToDevice));
-	/* whenever there is a read, reset the read pointer to the beginning */
-	g_pc4DataRead_d = g_pc4Data_d;
-	printf("SIZEOF_INPUT_DATA_BUF/g_iSizeRead is: %d\n",SIZEOF_INPUT_DATA_BUF/g_iSizeRead);
-        while(iSpecCount < iNumAcc){
+		//get data from input databuf to local
+		memcpy(data_raw,db_in->block[curblock_in].data_block,g_iSizeRead*sizeof(char));
+		for(n_frames=0;n_frames < SIZEOF_INPUT_DATA_BUF/g_iSizeRead;n_frames++){
+			// write new data to the gpu buffer
+			CUDASafeCallWithCleanUp(cudaMemcpy(g_pc4Data_d,
+				                           data_raw,
+				                           g_iSizeRead*sizeof(char),
+				                           cudaMemcpyHostToDevice));
+			/* whenever there is a read, reset the read pointer to the beginning */
+			g_pc4DataRead_d = g_pc4Data_d;
+			//printf("SIZEOF_INPUT_DATA_BUF/g_iSizeRead is: %d\n",SIZEOF_INPUT_DATA_BUF/g_iSizeRead);
 
-	if (g_iIsPFBOn)
-        {
-            /* do pfb */
-		printf("do pfb processing...,");
-            DoPFB<<<g_dimGPFB, g_dimBPFB>>>(g_pc4DataRead_d,
-                                            g_pf4FFTIn_d,
-                                            g_pfPFBCoeff_d);
-            CUDASafeCallWithCleanUp(cudaThreadSynchronize());
-            iCUDARet = cudaGetLastError();
-            if (iCUDARet != cudaSuccess)
-            {
-                (void) fprintf(stderr,
-                               "ERROR: File <%s>, Line %d: %s\n",
-                               __FILE__,
-                               __LINE__,
-                               cudaGetErrorString(iCUDARet));
-                /* free resources */
-                CleanUp();
-                //return EXIT_FAILURE;
-            }
-               printf("done!\n");
-            /* update the data read pointer */
-            g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
-        }
-        else
-        {
-            CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
-                                                       g_pf4FFTIn_d);
-            CUDASafeCallWithCleanUp(cudaThreadSynchronize());
-            iCUDARet = cudaGetLastError();
-            if (iCUDARet != cudaSuccess)
-            {
-                (void) fprintf(stderr,
-                               "ERROR: File <%s>, Line %d: %s\n",
-                               __FILE__,
-                               __LINE__,
-                               cudaGetErrorString(iCUDARet));
-                /* free resources */
-                CleanUp();
-                //return EXIT_FAILURE;
-           }
-            /* update the data read pointer */
-            g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
-        }
+			while(iSpecCount < iNumAcc){
+				if (g_iIsPFBOn)
+				{
+					/* do pfb */
+					printf("do pfb processing...,");
+					DoPFB<<<g_dimGPFB, g_dimBPFB>>>(g_pc4DataRead_d,
+					                                g_pf4FFTIn_d,
+					                                g_pfPFBCoeff_d);
+					CUDASafeCallWithCleanUp(cudaThreadSynchronize());
+					iCUDARet = cudaGetLastError();
+					if (iCUDARet != cudaSuccess)
+					{
+					    (void) fprintf(stderr,
+					                   "ERROR: File <%s>, Line %d: %s\n",
+					                   __FILE__,
+					                   __LINE__,
+					                   cudaGetErrorString(iCUDARet));
+					    /* free resources */
+					    CleanUp();
+					    //return EXIT_FAILURE;
+					}
+					printf("done!\n");
+					/* update the data read pointer */
+					g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
+				}
+				else
+				{
+					CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
+					                                           g_pf4FFTIn_d);
+					CUDASafeCallWithCleanUp(cudaThreadSynchronize());
+					iCUDARet = cudaGetLastError();
+					if (iCUDARet != cudaSuccess)
+					{
+					    (void) fprintf(stderr,
+					                   "ERROR: File <%s>, Line %d: %s\n",
+					                   __FILE__,
+					                   __LINE__,
+					                   cudaGetErrorString(iCUDARet));
+					    /* free resources */
+					    CleanUp();
+					    //return EXIT_FAILURE;
+					}
+					/* update the data read pointer */
+					g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
+				}
 
-        /* do fft */
-                printf("do fft...,");
-        iRet = DoFFT();
-        if (iRet != EXIT_SUCCESS)
-        {
-            (void) fprintf(stderr, "ERROR! FFT failed!\n");
-            CleanUp();
-            //return EXIT_FAILURE;
-        }
-                printf("done!\n");
+				/* do fft */
+				//        printf("do fft...,");
+				iRet = DoFFT();
+				if (iRet != EXIT_SUCCESS)
+				{
+					(void) fprintf(stderr, "ERROR! FFT failed!\n");
+					CleanUp();
+					//return EXIT_FAILURE;
+				}
+				//        printf("done!\n");
 
-        /* accumulate power x, power y, stokes, if the blanking bit is
-           not set */
-                printf("do stokes calculation and accumulation...,");
-        Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
-                                                 g_pf4SumStokes_d);
-        CUDASafeCallWithCleanUp(cudaThreadSynchronize());
-        iCUDARet = cudaGetLastError();
-        if (iCUDARet != cudaSuccess)
-        {
-            (void) fprintf(stderr,
-                           "ERROR: File <%s>, Line %d: %s\n",
-                           __FILE__,
-                           __LINE__,
-                           cudaGetErrorString(iCUDARet));
-            /* free resources */
-            CleanUp();
-            //return EXIT_FAILURE;
-        }
-                printf("done!\n");
-        ++iSpecCount;
+				/* accumulate power x, power y, stokes, if the blanking bit is
+				   not set */
+				//        printf("do stokes calculation and accumulation...,");
+				Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
+					                                     g_pf4SumStokes_d);
+				CUDASafeCallWithCleanUp(cudaThreadSynchronize());
+				iCUDARet = cudaGetLastError();
+				if (iCUDARet != cudaSuccess)
+				{
+					(void) fprintf(stderr,
+					               "ERROR: File <%s>, Line %d: %s\n",
+					               __FILE__,
+					               __LINE__,
+					               cudaGetErrorString(iCUDARet));
+					/* free resources */
+					CleanUp();
+					//return EXIT_FAILURE;
+				}
+				//        printf("done!\n");
+				++iSpecCount;
+			}
+			if (iSpecCount == iNumAcc)
+			{
+				n_spec ++;
+				/* dump to buffer */
+				//    printf("copy accumulation data from gpu to cpu memory...,");
+				CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
+				                                   g_pf4SumStokes_d,
+				                                   (g_iNumSubBands
+				                                   * g_iNFFT
+				                                    * sizeof(float4)),
+				                                    cudaMemcpyDeviceToHost));
+
+				memcpy(db_out->block[curblock_out].Stokes_Full+N_CHANS_PER_SPEC*N_IFS*n_spec,g_pf4SumStokes,N_CHANS_PER_SPEC*N_IFS*sizeof(float));
+				//    printf("done!\n");
+				/* NOTE: Plot() will modify data! */
+				//    printf("number %d of plot.\n",n_frames);
+				Plot();
+				// (void) usleep(5000);
+
+				/* reset time */
+				iSpecCount = 0;
+				/* zero accumulators */
+				CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d,
+				                               '\0',
+				                               (g_iNumSubBands
+				                                * g_iNFFT
+				                                * sizeof(float4))));
+
+				/* if time to read from input buffer */
+				iProcData = 0;
+				(void) gettimeofday(&stStop, NULL);
+				/*(void) printf("Time taken (barring Init()): %gs\n",
+					  ((stStop.tv_sec + (stStop.tv_usec * USEC2SEC))
+					   - (stStart.tv_sec + (stStart.tv_usec * USEC2SEC))));*/
+
+				//return EXIT_SUCCESS;
+
+				//display number of frames in status
+				hashpipe_status_lock_safe(&st);
+				hputi4(st.buf,"NFRAMES",n_frames);
+				hashpipe_status_unlock_safe(&st);
+			}
+		}
+		// Mark output block as full and advance
+		demo4_output_databuf_set_filled(db_out, curblock_out);
+		curblock_out = (curblock_out + 1) % db_out->header.n_block;
+
+		// Mark input block as free and advance
+		demo4_input_databuf_set_free(db_in, curblock_in);
+		curblock_in = (curblock_in + 1) % db_in->header.n_block;
+		mcnt++;
+		/* Check for cancel */
+		pthread_testcancel();
 	}
-        if (iSpecCount == iNumAcc)
-        {
-            /* dump to buffer */
-                printf("copy accumulation data from gpu to cpu memory...,");
-            CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
-                                               g_pf4SumStokes_d,
-                                               (g_iNumSubBands
-                                               * g_iNFFT
-                                                * sizeof(float4)),
-                                                cudaMemcpyDeviceToHost));
-
-		memcpy(db_out->block[curblock_out].Stokes_Full+N_CHANS_PER_SPEC*N_IFS*n_frames,g_pf4SumStokes,N_CHANS_PER_SPEC*N_IFS*sizeof(float));
-                printf("done!\n");
-            /* NOTE: Plot() will modify data! */
-                printf("number %d of plot.\n",n_frames);
-            Plot();
-            (void) usleep(5000);
-
-            /* reset time */
-            iSpecCount = 0;
-            /* zero accumulators */
-            CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d,
-                                               '\0',
-                                               (g_iNumSubBands
-                                                * g_iNFFT
-                                                * sizeof(float4))));
-
-        	/* if time to read from input buffer */
-            	iProcData = 0;
-    		(void) gettimeofday(&stStop, NULL);
-    		(void) printf("Time taken (barring Init()): %gs\n",
-                  ((stStop.tv_sec + (stStop.tv_usec * USEC2SEC))
-                   - (stStart.tv_sec + (stStart.tv_usec * USEC2SEC))));
-
-    		//return EXIT_SUCCESS;
-	
-		//display number of frames in status
-		hashpipe_status_lock_safe(&st);
-		hputi4(st.buf,"NFRAMES",n_frames);
-		hashpipe_status_unlock_safe(&st);
-        	}
-	}
-        // Mark output block as full and advance
-        demo4_output_databuf_set_filled(db_out, curblock_out);
-        curblock_out = (curblock_out + 1) % db_out->header.n_block;
-
-        // Mark input block as free and advance
-        demo4_input_databuf_set_free(db_in, curblock_in);
-        curblock_in = (curblock_in + 1) % db_in->header.n_block;
-	mcnt++;
-        /* Check for cancel */
-        pthread_testcancel();
-    }
-    	CleanUp();
+	CleanUp();
 }
 
 static hashpipe_thread_desc_t demo4_gpu_thread = {
@@ -663,7 +666,7 @@ static hashpipe_thread_desc_t demo4_gpu_thread = {
 
 static __attribute__((constructor)) void ctor()
 {
-  register_hashpipe_thread(&demo4_gpu_thread);
+	register_hashpipe_thread(&demo4_gpu_thread);
 }
 #ifdef __cplusplus
 }
