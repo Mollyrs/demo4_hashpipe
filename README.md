@@ -88,7 +88,7 @@ gpu0000:83:00.0: 6-11,18-23
 ```
 On this machine, we have 2 NUMA nodes named with socket 0 and 1, socket 0 has 6 dual cores which includes cpu 0-5 and 12-17, socket 1 includes cpu 6-11 and 18-23. There are 5 Ethernet interfaces on this machine, and the relationships with cpus are shown in the second part. There is one GPU on this machine can access from cpu 6-11 and 18-23 directly.
 In Hashpipe, we can bind and unbind(also known as mask) a process or a thread to a CPU or a range of CPUs, so that the process or thread will execute only on the designated CPU or CPUs rather than any CPU.
-To do this, you can use -c option to assign a particular cpu to a thread:
+To do this, you can use -c option to assign a particular CPU to a thread:
 ```javascript
 -c 18 demo4_net_thread -c 19 demo4_gpu_thread -c 20 demo4_output_thread
 ```
@@ -104,7 +104,7 @@ cat /proc/irq/257/smp_affinity
 ```
 The output indicates current affinity as a boolean bit field. It is given in hexadecimal, with the rightmost digit being the least significant, ie the booleans for the 4 lowest numbered processors. A binary 1 means that the processor is enabled to handle this IRQ, while a 0 means that it is not. If the low order 6 hexadecimal digits on a 24 processor machine read is: ffffff. Then all processors are enabled to handle this IRQ, ie there is no affinity. If we want to isolate this IRQ to cpu 23, for example, we would do: 
 ```javascript
-echo 008000 > /proc/irq/257/smp_affinity
+echo 800000 > /proc/irq/257/smp_affinity
 cat /proc/irq/257/smp_affinity
 ```
 The low order digits should now read is: 800000. At this point, IRQ 257 will be handled only by CPU 23. This will take effect with the next interrupt.
