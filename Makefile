@@ -5,7 +5,7 @@ NVCCFLAGS   = -O3 --compiler-options '-fPIC' --compiler-bindir=/usr/bin/gcc --sh
 
 # linker options
 CUDA_LDFLAGS  = -I$(CUDA_DIR)/include -L$(CUDA_DIR)/lib64 -lcudart -lcufft
-LFLAGS_PGPLOT = -L/usr/lib64/pgplot -lpgplot -lcpgplot -lX11
+LFLAGS_PGPLOT = -L/usr/lib64/pgplot -lpgplot -lcpgplot -lX11 -lgfortran
 HP_LDFLAGS = -L/usr/local/lib -lhashpipe -lhashpipestatus -lrt -lm -lpthread
 
 NVCC_FLAGS = $(NVCCFLAGS) $(CUDA_LDFLAGS) $(LFLAGS_PGPLOT) $(HP_LDFLAGS)

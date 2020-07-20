@@ -14,7 +14,7 @@ extern "C"{
 #include <sys/types.h>
 #include <unistd.h>
 #include "hashpipe.h"
-// #include "demo4_databuf.h"
+#include "demo4_databuf.h"
 #include "demo4_gpu_thread.h"
 #include <cuda.h>
 #include <cufft.h>
@@ -523,7 +523,7 @@ static void *run(hashpipe_thread_args_t * args)
 				if (g_iIsPFBOn)
 				{
 					/* do pfb */
-					printf("do pfb processing...,");
+					//printf("do pfb processing...,");
 					DoPFB<<<g_dimGPFB, g_dimBPFB>>>(g_pc4DataRead_d,
 					                                g_pf4FFTIn_d,
 					                                g_pfPFBCoeff_d);
@@ -540,7 +540,7 @@ static void *run(hashpipe_thread_args_t * args)
 					    CleanUp();
 					    //return EXIT_FAILURE;
 					}
-					printf("done!\n");
+					//printf("done!\n");
 					/* update the data read pointer */
 					g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
 				}

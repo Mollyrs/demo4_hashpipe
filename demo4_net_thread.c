@@ -21,8 +21,8 @@
 #include "demo4_databuf.h"
 
 #define PKTSOCK_BYTES_PER_FRAME (16384)
-#define PKTSOCK_FRAMES_PER_BLOCK (8)
-#define PKTSOCK_NBLOCKS (20)
+#define PKTSOCK_FRAMES_PER_BLOCK (1) //(8)
+#define PKTSOCK_NBLOCKS (1) //(20)
 #define PKTSOCK_NFRAMES (PKTSOCK_FRAMES_PER_BLOCK * PKTSOCK_NBLOCKS)
 #define BLOCK_SIZE	(PAGE_SIZE*N_PKTS_PER_SPEC)
 
@@ -99,13 +99,13 @@ static inline void get_header(unsigned char *p_frame, packet_header_t * pkt_head
 	pkt_header->source_id = (short int)(raw_header >> 56);
 	pkt_header->spec_id = (short int)(raw_header & 0x01);
 
-	#ifdef TEST_MODE
+	//#ifdef TEST_MODE
 	fprintf(stderr,"**Header**\n");
 	fprintf(stderr,"Raw Header is : %lu \n",raw_header);
 	fprintf(stderr,"seq of Header is :%lu \n ",pkt_header->seq);
 	fprintf(stderr,"source id is :%d \n ",pkt_header->source_id);
 	fprintf(stderr,"spec id is :%d \n ",pkt_header->spec_id);
-	#endif
+	//#endif
 }
 
 double UTC2JD(double year, double month, double day){
@@ -223,25 +223,36 @@ static void *run(hashpipe_thread_args_t * args){
 			npackets++;
 
 			#ifdef TEST_MODE
-				printf("received %lu bytes of number %lu packets\n",nbytes,npackets);
+				printf("received %lu packets\n",npackets);
 				printf("number of lost packets is : %lu\n",pkt_loss);
 			#endif
 			hashpipe_pktsock_release_frame(p_frame);
 			// copy data to input data buffer                             
-			//printf("db->block[block_idx]+%d\n",(i%(PAGE_SIZE*N_PKTS_PER_SPEC))*N_BYTES_PKT_DATA); 
+			// printf("db->block[block_idx]+%d\n",(i%(PAGE_SIZE*N_PKTS_PER_SPEC))*N_BYTES_PKT_DATA); 
 			// Use length from packet (minus UDP header and minus HEADER word and minus CRC word)
 			// memcpy(dest_p, payload_p, PKT_UDP_SIZE(p_frame) - 8 - 8 - 8);
 			// memcpy(db->block[block_idx].data_block+(i%(PAGE_SIZE*N_PKTS_PER_SPEC))*N_BYTES_PKT_DATA,(PKT_UDP_DATA(p_frame)+8),N_BYTES_PKT_DATA*sizeof(unsigned char));
 			// memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame)+8, N_BYTES_PKT_DATA*sizeof(unsigned char));
-			memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame)-8-8-8, N_BYTES_PKT_DATA*sizeof(unsigned char));
+			
+			//memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame)-8-8-8, N_BYTES_PKT_DATA*sizeof(unsigned char));
+			memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame), N_BYTES_PKT_DATA*sizeof(unsigned char));
 			pthread_testcancel();
+		}
+
+		for (int j=0; j<N_BYTES_PER_PKT*10; j++){
+			printf("Copied data[%d]: %d\n",j, db->block[block_idx].data_block[j]);
 		}
 
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;
-		#ifdef TEST_MODE
+		//#ifdef TEST_MODE
 			printf("packet size is: %d\n",packet_size);
-		#endif
+			printf("packet is udp %d\n", PKT_IS_UDP(p_frame));
+			printf("packet dest: %d\n", PKT_UDP_DST(p_frame));
+
+
+
+		//#endif
 		get_header(p_frame,&pkt_header);
 		SEQ = pkt_header.seq;
 		//printf("SEQ is : %lu\n",SEQ);

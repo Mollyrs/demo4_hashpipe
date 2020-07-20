@@ -32,13 +32,13 @@
 
 #define LEN_GENSTRING       256
 
-#define DEF_PFB_ON          TRUE
+#define DEF_PFB_ON          FALSE //TRUE
 
 #define NUM_BYTES_PER_SAMP  1
-#define DEF_LEN_SPEC        4096        // default value for g_iNFFT 
+#define DEF_LEN_SPEC        1024//4096        // default value for g_iNFFT 
 //#define DEF_LEN_SPEC        N_CHANS_PER_SPEC        // default value for g_iNFFT 
 
-#define DEF_ACC             1024           // default number of spectra to accumulate
+#define DEF_ACC             1 //1024           // default number of spectra to accumulate
 //#define DEF_ACC             ACC_LEN           // default number of spectra to accumulate 
 //#define DEF_SIZE_READ       33554432    // 32 MB - block size in VEGAS input buffer
 //#define DEF_SIZE_READ       N_CHANS_PER_SPEC*N_POLS*ACC_LEN    
