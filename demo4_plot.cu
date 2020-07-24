@@ -18,7 +18,7 @@ float* g_pfSumPowY = NULL;
 float* g_pfSumStokesRe = NULL;
 float* g_pfSumStokesIm = NULL;
 float* g_pfFreq = NULL;
-float g_fFSamp = 1000.0;                   /* 1 [frequency] */
+float g_fFSamp = 2048.0;                   /* 1 [frequency] */
 
 int InitPlot()
 {
@@ -158,7 +158,7 @@ void Plot()
         /*cpglab("Bin Number", "", "SumPowX");*/
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut");
+        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut^2");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);
         cpgbox("BCNST", 0.0, 0, "BCNTSV", 0.0, 0);
@@ -196,7 +196,7 @@ void Plot()
         //cpglab("Bin Number", "", "SumPowY");
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut Shift");
+        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut Magnitude");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);
         cpgbox("BCNST", 0.0, 0, "BCNSTV", 0.0, 0);

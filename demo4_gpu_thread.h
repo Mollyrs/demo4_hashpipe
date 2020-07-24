@@ -30,20 +30,16 @@
 #define FALSE               0
 #define TRUE                1
 
-//#define LEN_GENSTRING       256
-
 #define DEF_PFB_ON          FALSE //TRUE
 
-#define NUM_BYTES_PER_SAMP  1
-#define DEF_LEN_SPEC        1024//4096        // default value for g_iNFFT 
-//#define DEF_LEN_SPEC        N_CHANS_PER_SPEC        // default value for g_iNFFT 
+#define DEF_LEN_SPEC        4096 //2048         // default value for g_iNFFT 
 
 #define DEF_ACC             1 //1024           // default number of spectra to accumulate
 //#define DEF_ACC             ACC_LEN           // default number of spectra to accumulate 
 //#define DEF_SIZE_READ       33554432    // 32 MB - block size in VEGAS input buffer
 //#define DEF_SIZE_READ       N_CHANS_PER_SPEC*N_POLS*ACC_LEN    
 #define DEF_SIZE_READ       DEF_LEN_SPEC*DEF_ACC*4    
-#define LEN_DATA            (NUM_BYTES_PER_SAMP * g_iNFFT)
+
 
 // for PFB 
 #define NUM_TAPS            8       // number of multiples of g_iNFFT 
@@ -56,8 +52,8 @@
 #define FFTPLAN_RANK        1
 #define FFTPLAN_ISTRIDE     1
 #define FFTPLAN_OSTRIDE     1
-#define FFTPLAN_IDIST       1024
-#define FFTPLAN_ODIST       513
+#define FFTPLAN_IDIST       4096 //2048
+#define FFTPLAN_ODIST       2049 //1025
 #define FFTPLAN_BATCH       (2 * g_iNumSubBands)
 
 #define USEC2SEC            1e-6
@@ -89,13 +85,11 @@ typedef unsigned char BYTE;
  * @param[in]   pc4Data     Input data (raw data read from memory)
  * @param[out]  pf4FFTIn    Output data (input to FFT)
  */
-__global__ void DoPFB(char4* pc4Data,
-                      float4* pf4FFTIn,
-                      float* pfPFBCoeff);
+
 __global__ void CopyDataForFFT(char4* pc4Data,
-                               float4* pf4FFTIn);
+                               float* pf4FFTIn);
 int DoFFT(void);
-__global__ void Accumulate(float4 *pf4FFTOut,
+__global__ void Accumulate(float2 *pf4FFTOut,
                            float4* pfSumStokes);
 void CleanUp(void);
 

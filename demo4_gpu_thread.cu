@@ -41,15 +41,15 @@ dim3 g_dimBCopy(1, 1, 1);
 dim3 g_dimGCopy(1, 1);
 dim3 g_dimBAccum(1, 1, 1);
 dim3 g_dimGAccum(1, 1);
-float4* g_pf4FFTIn_d = NULL;
-float4* g_pf4FFTOut_d = NULL;
+float* g_pf4FFTIn_d = NULL;
+float2* g_pf4FFTOut_d = NULL;
 cufftHandle g_stPlan = {0};
 float4* g_pf4SumStokes = NULL;
 float4* g_pf4SumStokes_d = NULL;
 int g_iIsPFBOn = DEF_PFB_ON;
 int g_iNTaps = 1;                       /* 1 if no PFB, NUM_TAPS if PFB */
 /* BUG: crash if file size is less than 32MB */
-int g_iSizeRead = DEF_SIZE_READ;
+int g_iSizeRead = DEF_LEN_SPEC*4;//DEF_SIZE_READ;
 int g_iNumSubBands = DEF_NUM_SUBBANDS;
 int g_iFileCoeff = 0;
 char g_acFileCoeff[256] = {0};
@@ -86,71 +86,6 @@ static int Init(hashpipe_thread_args_t * args)
 
     CUDASafeCallWithCleanUp(cudaGetDeviceProperties(&stDevProp, 0));
     iMaxThreadsPerBlock = stDevProp.maxThreadsPerBlock;
-
-    if (g_iIsPFBOn)
-    {
-        /* set number of taps to NUM_TAPS if PFB is on, else number of
-           taps = 1 */
-        g_iNTaps = NUM_TAPS;
-
-        g_pfPFBCoeff = (float *) malloc(g_iNumSubBands
-                                        * g_iNTaps
-                                        * g_iNFFT
-                                        * sizeof(float));
-        if (NULL == g_pfPFBCoeff)
-        {
-            (void) fprintf(stderr,
-                           "ERROR: Memory allocation failed! %s.\n",
-                           strerror(errno));
-            return EXIT_FAILURE;
-        }
-
-        /* allocate memory for the filter coefficient array on the device */
-        CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pfPFBCoeff_d,
-                                           g_iNumSubBands
-                                           * g_iNTaps
-                                           * g_iNFFT
-                                           * sizeof(float)));
-
-        /* read filter coefficients */
-        /* build file name */
-        (void) sprintf(g_acFileCoeff,
-                       "%s_%s_%d_%d_%d%s",
-                       FILE_COEFF_PREFIX,
-                       FILE_COEFF_DATATYPE,
-                       g_iNTaps,
-                       g_iNFFT,
-                       g_iNumSubBands,
-                       FILE_COEFF_SUFFIX);
-        g_iFileCoeff = open(g_acFileCoeff, O_RDONLY);
-        if (g_iFileCoeff < EXIT_SUCCESS)
-        {
-            (void) fprintf(stderr,
-                           "ERROR: Opening filter coefficients file %s "
-                           "failed! %s.\n",
-                           g_acFileCoeff,
-                           strerror(errno));
-            return EXIT_FAILURE;
-        }
-
-        iRet = read(g_iFileCoeff,
-                    g_pfPFBCoeff,
-                    g_iNumSubBands * g_iNTaps * g_iNFFT * sizeof(float));
-        if (iRet != (g_iNumSubBands * g_iNTaps * g_iNFFT * sizeof(float)))
-        {
-            (void) fprintf(stderr,
-                           "ERROR: Reading filter coefficients failed! %s.\n",
-                           strerror(errno));
-            return EXIT_FAILURE;
-        }
-        (void) close(g_iFileCoeff);
-
-        /* copy filter coefficients to the device */
-        CUDASafeCallWithCleanUp(cudaMemcpy(g_pfPFBCoeff_d,
-                   g_pfPFBCoeff,
-                   g_iNumSubBands * g_iNTaps * g_iNFFT * sizeof(float),
-                   cudaMemcpyHostToDevice));
-    }
 
     /* allocate memory for data array - 32MB is the block size for the VEGAS
        input buffer */
@@ -193,11 +128,11 @@ static int Init(hashpipe_thread_args_t * args)
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTIn_d,
                                        g_iNumSubBands
                                        * g_iNFFT
-                                       * sizeof(float4)));
+                                       * sizeof(float)));
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut_d,
                                        g_iNumSubBands
                                        * g_iNFFT
-                                       * sizeof(float4)));
+                                       * sizeof(float2)));
 
     g_pf4SumStokes = (float4 *) malloc(g_iNumSubBands
                                        * g_iNFFT
@@ -520,50 +455,25 @@ static void *run(hashpipe_thread_args_t * args)
 			//printf("SIZEOF_INPUT_DATA_BUF/g_iSizeRead is: %d\n",SIZEOF_INPUT_DATA_BUF/g_iSizeRead);
 
 			while(iSpecCount < iNumAcc){
-				if (g_iIsPFBOn)
-				{
-					/* do pfb */
-					//printf("do pfb processing...,");
-					DoPFB<<<g_dimGPFB, g_dimBPFB>>>(g_pc4DataRead_d,
-					                                g_pf4FFTIn_d,
-					                                g_pfPFBCoeff_d);
-					CUDASafeCallWithCleanUp(cudaThreadSynchronize());
-					iCUDARet = cudaGetLastError();
-					if (iCUDARet != cudaSuccess)
-					{
-					    (void) fprintf(stderr,
-					                   "ERROR: File <%s>, Line %d: %s\n",
-					                   __FILE__,
-					                   __LINE__,
-					                   cudaGetErrorString(iCUDARet));
-					    /* free resources */
-					    CleanUp();
-					    //return EXIT_FAILURE;
-					}
-					//printf("done!\n");
-					/* update the data read pointer */
-					g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
-				}
-				else
-				{
-					CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
-					                                           g_pf4FFTIn_d);
-					CUDASafeCallWithCleanUp(cudaThreadSynchronize());
-					iCUDARet = cudaGetLastError();
-					if (iCUDARet != cudaSuccess)
-					{
-					    (void) fprintf(stderr,
-					                   "ERROR: File <%s>, Line %d: %s\n",
-					                   __FILE__,
-					                   __LINE__,
-					                   cudaGetErrorString(iCUDARet));
-					    /* free resources */
-					    CleanUp();
-					    //return EXIT_FAILURE;
-					}
-					/* update the data read pointer */
-					g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
-				}
+				
+                CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
+                                                            g_pf4FFTIn_d);
+                CUDASafeCallWithCleanUp(cudaThreadSynchronize());
+                iCUDARet = cudaGetLastError();
+                if (iCUDARet != cudaSuccess)
+                {
+                    (void) fprintf(stderr,
+                                    "ERROR: File <%s>, Line %d: %s\n",
+                                    __FILE__,
+                                    __LINE__,
+                                    cudaGetErrorString(iCUDARet));
+                    /* free resources */
+                    CleanUp();
+                    //return EXIT_FAILURE;
+                }
+                /* update the data read pointer */
+                g_pc4DataRead_d += (g_iNumSubBands * g_iNFFT);
+				
 
 				/* do fft */
 				//        printf("do fft...,");

@@ -26,6 +26,10 @@
 #define PKTSOCK_NFRAMES (PKTSOCK_FRAMES_PER_BLOCK * PKTSOCK_NBLOCKS)
 #define BLOCK_SIZE	(PAGE_SIZE*N_PKTS_PER_SPEC)
 
+#define BYTES_PER_PKT 1032
+#define BYTES_PER_PAYLOAD 1024
+#define NUM_PACKETS_PER_BUFFER 4
+
 double MJD;
 
 static int init(hashpipe_thread_args_t * args)
@@ -44,7 +48,7 @@ static int init(hashpipe_thread_args_t * args)
 	hputs(st.buf, "BINDHOST", bindhost);
 	hputi4(st.buf, "BINDPORT", bindport);
 	hputi8(st.buf, "NPACKETS", 0);
-	hputi8(st.buf, "PKTSIZE", N_BYTES_PER_PKT);
+	hputi8(st.buf, "PKTSIZE", BYTES_PER_PKT);
 	hashpipe_status_unlock_safe(&st);
 
 	// Set up pktsock 
@@ -127,7 +131,7 @@ static void *run(hashpipe_thread_args_t * args){
 	uint64_t mcnt = 0;
 	int block_idx = 0;
 	unsigned long header; // 64 bit counter     
-	// unsigned char data_pkt[N_BYTES_PER_PKT]; // save received packet
+	// unsigned char data_pkt[BYTES_PER_PKT]; // save received packet
 	packet_header_t pkt_header;
 	unsigned long SEQ=0;
 	unsigned long LAST_SEQ=0;
@@ -208,68 +212,41 @@ static void *run(hashpipe_thread_args_t * args){
 		hashpipe_status_unlock_safe(&st);
 
 		// receiving packets
-		for(int i=0;i<BLOCK_SIZE;i++){
+		for(int i=0;i<NUM_PACKETS_PER_BUFFER;i++){
 			do {
 				p_frame = hashpipe_pktsock_recv_udp_frame_nonblock(p_ps, bindport);
 			} 
 			while (!p_frame && run_threads());
 			if(!run_threads()) break;
- 			if(npackets == 0){
-				get_header(p_frame,&pkt_header);
-				SEQ = pkt_header.seq;
-				pkt_loss=0;
-				LAST_SEQ = (SEQ-1);
-			}
-			npackets++;
+ 			
 
 			#ifdef TEST_MODE
+				if(npackets == 0){
+					get_header(p_frame,&pkt_header);
+					SEQ = pkt_header.seq;
+					pkt_loss=0;
+					LAST_SEQ = (SEQ-1);
+				}
+				npackets++;
 				printf("received %lu packets\n",npackets);
 				printf("number of lost packets is : %lu\n",pkt_loss);
 			#endif
 			hashpipe_pktsock_release_frame(p_frame);
-			// copy data to input data buffer                             
-			// printf("db->block[block_idx]+%d\n",(i%(PAGE_SIZE*N_PKTS_PER_SPEC))*N_BYTES_PKT_DATA); 
-			// Use length from packet (minus UDP header and minus HEADER word and minus CRC word)
-			// memcpy(dest_p, payload_p, PKT_UDP_SIZE(p_frame) - 8 - 8 - 8);
-			// memcpy(db->block[block_idx].data_block+(i%(PAGE_SIZE*N_PKTS_PER_SPEC))*N_BYTES_PKT_DATA,(PKT_UDP_DATA(p_frame)+8),N_BYTES_PKT_DATA*sizeof(unsigned char));
-			// memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame)+8, N_BYTES_PKT_DATA*sizeof(unsigned char));
-			
-			//memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame)-8-8-8, N_BYTES_PKT_DATA*sizeof(unsigned char));
-			memcpy(db->block[block_idx].data_block+i*N_BYTES_PKT_DATA, PKT_UDP_DATA(p_frame), N_BYTES_PKT_DATA*sizeof(unsigned char));
+			memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
 			pthread_testcancel();
-		}
-
-		for (int j=0; j<N_BYTES_PER_PKT*10; j++){
-			printf("Copied data[%d]: %d\n",j, db->block[block_idx].data_block[j]);
 		}
 
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;
-		//#ifdef TEST_MODE
+		#ifdef TEST_MODE
+		    for (int j=0; j<BYTES_PER_PAYLOAD*NUM_PACKETS_PER_BUFFER; j++){
+				printf("Copied data[%d]: %d\n",j, db->block[block_idx].data_block[j]);
+			}
 			printf("packet size is: %d\n",packet_size);
 			printf("packet is udp %d\n", PKT_IS_UDP(p_frame));
 			printf("packet dest: %d\n", PKT_UDP_DST(p_frame));
+		#endif
 
-
-
-		//#endif
-		get_header(p_frame,&pkt_header);
-		SEQ = pkt_header.seq;
-		//printf("SEQ is : %lu\n",SEQ);
-		pkt_loss += SEQ - (LAST_SEQ+BLOCK_SIZE);
-		pkt_loss_rate = (double)pkt_loss/(double)npackets*100.0;
-		LAST_SEQ = SEQ;
-
-		// Get stats from packet socket
-		hashpipe_pktsock_stats(p_ps, &pktsock_pkts, &pktsock_drops);
-
-		hashpipe_status_lock_safe(&st);
-		hputi8(st.buf, "NPACKETS", npackets);
-		hputi8(st.buf,"PKTLOSS",pkt_loss);
-		hputr8(st.buf,"LOSSRATE",pkt_loss_rate);		
-		hputu8(st.buf, "NETRECV",  pktsock_pkts);
-		hputu8(st.buf, "NETDROPS", pktsock_drops);
-		hashpipe_status_unlock_safe(&st);
 
 		// Mark block as full
 		if(demo4_input_databuf_set_filled(db, block_idx) != HASHPIPE_OK) {
