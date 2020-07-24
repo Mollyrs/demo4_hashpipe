@@ -55,10 +55,9 @@ int DoFFT()
     cufftResult iCUFFTRet = CUFFT_SUCCESS;
 
     /* execute plan */
-    iCUFFTRet = cufftExecC2C(g_stPlan,
-                             (cufftComplex*) g_pf4FFTIn_d,
-                             (cufftComplex*) g_pf4FFTOut_d,
-                             CUFFT_FORWARD);
+    iCUFFTRet = cufftExecR2C(g_stPlan,
+                             (cufftReal*) g_pf4FFTIn_d,
+                             (cufftComplex*) g_pf4FFTOut_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR! FFT for polarisation X failed!\n");
@@ -82,11 +81,9 @@ __global__ void Accumulate(float4 *pf4FFTOut,
     f4SumStokes.y += (f4FFTOut.z * f4FFTOut.z)
                          + (f4FFTOut.w * f4FFTOut.w);
     /* Re(XY*) */
-    f4SumStokes.z += (f4FFTOut.x * f4FFTOut.z)
-                         + (f4FFTOut.y * f4FFTOut.w);
+    f4SumStokes.z += (f4FFTOut.x * f4FFTOut.x);
     /* Im(XY*) */
-    f4SumStokes.w += (f4FFTOut.y * f4FFTOut.z)
-                         - (f4FFTOut.x * f4FFTOut.w);
+    f4SumStokes.w += (f4FFTOut.y * f4FFTOut.y);
 
     pf4SumStokes[i] = f4SumStokes;
 

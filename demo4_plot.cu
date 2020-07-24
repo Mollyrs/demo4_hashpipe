@@ -158,7 +158,7 @@ void Plot()
         /*cpglab("Bin Number", "", "SumPowX");*/
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "SumPowX");
+        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);
         cpgbox("BCNST", 0.0, 0, "BCNTSV", 0.0, 0);
@@ -196,7 +196,7 @@ void Plot()
         //cpglab("Bin Number", "", "SumPowY");
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "SumPowY");
+        cpgmtxt("L", 4.0, 0.2, 0, "FFTOut Shift");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);
         cpgbox("BCNST", 0.0, 0, "BCNSTV", 0.0, 0);
@@ -228,7 +228,7 @@ void Plot()
         //cpglab("Bin Number", "", "SumStokesRe");
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "SumStokesRe");
+        cpgmtxt("L", 4.0, 0.2, 0, "RealOnly");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);
         cpgbox("BCNST", 0.0, 0, "BCNSTV", 0.0, 0);
@@ -260,7 +260,7 @@ void Plot()
         //cpglab("Bin Number", "", "SumStokesIm");
         cpgsci(PG_CI_PLOT);
         cpgsch(PG_SIZE_LABEL);
-        cpgmtxt("L", 4.0, 0.2, 0, "SumStokesIm");
+        cpgmtxt("L", 4.0, 0.2, 0, "ImagineOnly");
         cpgmtxt("B", 1.5, 0.45, 0, "Bin Number");
         cpgsci(PG_CI_DEF);
         cpgsch(PG_SIZE_DEF);

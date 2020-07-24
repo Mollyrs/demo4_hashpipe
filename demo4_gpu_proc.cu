@@ -476,11 +476,9 @@ __global__ void Accumulate(float4 *pf4FFTOut,
     f4SumStokes.y += (f4FFTOut.z * f4FFTOut.z)
                          + (f4FFTOut.w * f4FFTOut.w);
     /* Re(XY*) */
-    f4SumStokes.z += (f4FFTOut.x * f4FFTOut.z)
-                         + (f4FFTOut.y * f4FFTOut.w);
+    f4SumStokes.z += (f4FFTOut.x * f4FFTOut.XY);
     /* Im(XY*) */
-    f4SumStokes.w += (f4FFTOut.y * f4FFTOut.z)
-                         - (f4FFTOut.x * f4FFTOut.w);
+    f4SumStokes.w += (f4FFTOut.y * f4FFTOut.y);
 
     pf4SumStokes[i] = f4SumStokes;
 }

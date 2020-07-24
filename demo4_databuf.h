@@ -12,7 +12,7 @@
 #define N_BYTES_PER_SAMPLE	1	// number of bytes per sample
 #define N_BEAMS			1	// number of beams
 #define N_PKTS_PER_SPEC         1	// number packets per spectrum
-#define N_POLS                  4       // number of polarizations
+#define N_POLS                  1       // number of polarizations
 #define N_IFS			4	// number of IFs per Stokes
 #define N_BYTES_HEAD		8	// number bytes of header in packets
 #define N_BYTES_PER_PKT		1032 //4104	// number bytes per packets

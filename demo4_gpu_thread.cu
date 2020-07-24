@@ -229,7 +229,7 @@ static int Init(hashpipe_thread_args_t * args)
                               &g_iNFFT,
                               FFTPLAN_OSTRIDE,
                               FFTPLAN_ODIST,
-                              CUFFT_C2C,
+                              CUFFT_R2C,
                               FFTPLAN_BATCH);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {

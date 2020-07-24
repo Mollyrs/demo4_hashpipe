@@ -30,7 +30,7 @@
 #define FALSE               0
 #define TRUE                1
 
-#define LEN_GENSTRING       256
+//#define LEN_GENSTRING       256
 
 #define DEF_PFB_ON          FALSE //TRUE
 
@@ -54,10 +54,10 @@
 #define DEF_NUM_SUBBANDS    1
 
 #define FFTPLAN_RANK        1
-#define FFTPLAN_ISTRIDE     (2 * g_iNumSubBands)
-#define FFTPLAN_OSTRIDE     (2 * g_iNumSubBands)
-#define FFTPLAN_IDIST       1
-#define FFTPLAN_ODIST       1
+#define FFTPLAN_ISTRIDE     1
+#define FFTPLAN_OSTRIDE     1
+#define FFTPLAN_IDIST       1024
+#define FFTPLAN_ODIST       513
 #define FFTPLAN_BATCH       (2 * g_iNumSubBands)
 
 #define USEC2SEC            1e-6
