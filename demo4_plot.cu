@@ -11,14 +11,14 @@
 
 extern int g_iNumSubBands;
 extern int g_iNFFT;
-extern float4* g_pf4SumStokes;
+extern float* g_pf4SumStokes;
 
 float* g_pfSumPowX = NULL;
 float* g_pfSumPowY = NULL;
 float* g_pfSumStokesRe = NULL;
 float* g_pfSumStokesIm = NULL;
 float* g_pfFreq = NULL;
-float g_fFSamp = 2048.0;                   /* 1 [frequency] */
+float g_fFSamp = 16384.0;                   /* 1 [frequency] */
 
 int InitPlot()
 {
@@ -103,24 +103,24 @@ void Plot()
              i < (g_iNumSubBands * g_iNFFT);
              i += g_iNumSubBands, ++j)
         {
-            if (0.0 == g_pf4SumStokes[i].x)
+            if (0.0 == g_pf4SumStokes[i])
             {
                 g_pfSumPowX[j] = 0.0;
             }
             else
             {
-                g_pfSumPowX[j] = g_pf4SumStokes[i].x;
+                g_pfSumPowX[j] = g_pf4SumStokes[i];
             }
-            if (0.0 == g_pf4SumStokes[i].y)
+            if (0.0 == g_pf4SumStokes[i])
             {
                 g_pfSumPowY[j] = 0.0;
             }
             else
             {
-                g_pfSumPowY[j] = g_pf4SumStokes[i].y;
+                g_pfSumPowY[j] = g_pf4SumStokes[i];
             }
-            g_pfSumStokesRe[j] = g_pf4SumStokes[i].z;
-            g_pfSumStokesIm[j] = g_pf4SumStokes[i].w;
+            g_pfSumStokesRe[j] = g_pf4SumStokes[i];
+            g_pfSumStokesIm[j] = g_pf4SumStokes[i];
 		//printf("%f ",g_pf4SumStokes[i].x);
         }
 

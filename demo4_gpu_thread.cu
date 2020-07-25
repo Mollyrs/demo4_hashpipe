@@ -44,12 +44,12 @@ dim3 g_dimGAccum(1, 1);
 float* g_pf4FFTIn_d = NULL;
 float2* g_pf4FFTOut_d = NULL;
 cufftHandle g_stPlan = {0};
-float4* g_pf4SumStokes = NULL;
-float4* g_pf4SumStokes_d = NULL;
+float* g_pf4SumStokes = NULL;
+float* g_pf4SumStokes_d = NULL;
 int g_iIsPFBOn = DEF_PFB_ON;
 int g_iNTaps = 1;                       /* 1 if no PFB, NUM_TAPS if PFB */
 /* BUG: crash if file size is less than 32MB */
-int g_iSizeRead = DEF_LEN_SPEC*4;//DEF_SIZE_READ;
+int g_iSizeRead = DEF_LEN_SPEC;//DEF_SIZE_READ;
 int g_iNumSubBands = DEF_NUM_SUBBANDS;
 int g_iFileCoeff = 0;
 char g_acFileCoeff[256] = {0};
@@ -134,9 +134,9 @@ static int Init(hashpipe_thread_args_t * args)
                                        * g_iNFFT
                                        * sizeof(float2)));
 
-    g_pf4SumStokes = (float4 *) malloc(g_iNumSubBands
+    g_pf4SumStokes = (float *) malloc(g_iNumSubBands
                                        * g_iNFFT
-                                       * sizeof(float4));
+                                       * sizeof(float));
     if (NULL == g_pf4SumStokes)
     {
         (void) fprintf(stderr,
@@ -147,12 +147,12 @@ static int Init(hashpipe_thread_args_t * args)
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4SumStokes_d,
                                        g_iNumSubBands
                                        * g_iNFFT
-                                       * sizeof(float4)));
+                                       * sizeof(float)));
     CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d,
                                        '\0',
                                        g_iNumSubBands
                                        * g_iNFFT
-                                       * sizeof(float4)));
+                                       * sizeof(float)));
 
     /* create plan */
     iCUFFTRet = cufftPlanMany(&g_stPlan,
@@ -171,7 +171,7 @@ static int Init(hashpipe_thread_args_t * args)
         (void) fprintf(stderr, "ERROR: Plan creation failed!\n");
         return EXIT_FAILURE;
     }
-
+    /*
     iRet = InitPlot();
     if (iRet != EXIT_SUCCESS)
     {
@@ -179,7 +179,7 @@ static int Init(hashpipe_thread_args_t * args)
                        "ERROR: Plotting initialisation failed!\n");
         return EXIT_FAILURE;
     }
-
+*/
     return EXIT_SUCCESS;
 }
 
@@ -361,14 +361,13 @@ static void *run(hashpipe_thread_args_t * args)
     int nhits = 0;
     char *data_raw; // raw data will be feed to gpu thread
     data_raw = (char *)malloc(g_iSizeRead*sizeof(char));
-    //float *full_stokes; // full stokes data returned from gpu thread
-    //full_stokes = (float *)malloc(N_CHANS_PER_SPEC*N_IFS*sizeof(float));
+
     int n_frames; // number of frames has been processed
 
     int iRet = EXIT_SUCCESS;
     int iSpecCount = 0;
     int iNumAcc = DEF_ACC;
-    if(iNumAcc > g_iSizeRead/g_iNFFT/4){iNumAcc=g_iSizeRead/g_iNFFT/4;} // if accumulation number larger than data buffer, setit to number spectra frames of buffer
+    if(iNumAcc > g_iSizeRead/g_iNFFT){iNumAcc=g_iSizeRead/g_iNFFT;} // if accumulation number larger than data buffer, setit to number spectra frames of buffer
 	int n_spec = 0; // number of spectrum
     int iProcData = 0;
     cudaError_t iCUDARet = cudaSuccess;
@@ -452,8 +451,9 @@ static void *run(hashpipe_thread_args_t * args)
 				                           cudaMemcpyHostToDevice));
 			/* whenever there is a read, reset the read pointer to the beginning */
 			g_pc4DataRead_d = g_pc4Data_d;
-			//printf("SIZEOF_INPUT_DATA_BUF/g_iSizeRead is: %d\n",SIZEOF_INPUT_DATA_BUF/g_iSizeRead);
-
+            //printf("SIZEOF_INPUT_DATA_BUF/g_iSizeRead is: %d\n",SIZEOF_INPUT_DATA_BUF/g_iSizeRead);
+            
+            //printf("iNumAcc: %d\n", iNumAcc);
 			while(iSpecCount < iNumAcc){
 				
                 CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
@@ -476,7 +476,7 @@ static void *run(hashpipe_thread_args_t * args)
 				
 
 				/* do fft */
-				//        printf("do fft...,");
+				        //printf("do fft...,");
 				iRet = DoFFT();
 				if (iRet != EXIT_SUCCESS)
 				{
@@ -484,7 +484,7 @@ static void *run(hashpipe_thread_args_t * args)
 					CleanUp();
 					//return EXIT_FAILURE;
 				}
-				//        printf("done!\n");
+				        //printf("FFT done!\n");
 
 				/* accumulate power x, power y, stokes, if the blanking bit is
 				   not set */
@@ -509,21 +509,26 @@ static void *run(hashpipe_thread_args_t * args)
 			}
 			if (iSpecCount == iNumAcc)
 			{
-				n_spec ++;
+				//n_spec ++; //bug, starts writing too late, moved to after write
 				/* dump to buffer */
-				//    printf("copy accumulation data from gpu to cpu memory...,");
+				    //printf("copy accumulation data from gpu to cpu memory...,");
 				CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
 				                                   g_pf4SumStokes_d,
 				                                   (g_iNumSubBands
 				                                   * g_iNFFT
-				                                    * sizeof(float4)),
+				                                    * sizeof(float)),
 				                                    cudaMemcpyDeviceToHost));
 
-				memcpy(db_out->block[curblock_out].Stokes_Full+N_CHANS_PER_SPEC*N_IFS*n_spec,g_pf4SumStokes,N_CHANS_PER_SPEC*N_IFS*sizeof(float));
-				//    printf("done!\n");
+				memcpy(db_out->block[curblock_out].Stokes_Full+N_CHANS_PER_SPEC*n_spec,g_pf4SumStokes,N_CHANS_PER_SPEC*sizeof(float));
+                    //printf("Stokes to output done!\n");
+                n_spec ++; 
+                //for (int n=0; n<50; n++){
+                 //   printf("fftout[%d]: %d\n",n,g_pf4FFTOut_d[n]);
+               // }
+
 				/* NOTE: Plot() will modify data! */
 				//    printf("number %d of plot.\n",n_frames);
-				Plot();
+				//Plot();
 				// (void) usleep(5000);
 
 				/* reset time */
@@ -533,7 +538,7 @@ static void *run(hashpipe_thread_args_t * args)
 				                               '\0',
 				                               (g_iNumSubBands
 				                                * g_iNFFT
-				                                * sizeof(float4))));
+				                                * sizeof(float))));
 
 				/* if time to read from input buffer */
 				iProcData = 0;

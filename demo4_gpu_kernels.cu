@@ -42,20 +42,13 @@ int DoFFT()
 }
 
 __global__ void Accumulate(float2 *pf4FFTOut,
-                           float4 *pf4SumStokes)
+                           float *pf4SumStokes)
 {
     int i = (blockIdx.x * blockDim.x) + threadIdx.x;
     float2 f4FFTOut = pf4FFTOut[i];
-    float4 f4SumStokes = pf4SumStokes[i];
+    float f4SumStokes = pf4SumStokes[i];
 
-    /* Re(X)^2 + Im(X)^2 */
-    f4SumStokes.x += (f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y);
-    /* Re(Y)^2 + Im(Y)^2 */
-    f4SumStokes.y += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
-    /* Re(XY*) */
-    f4SumStokes.z += (f4FFTOut.x * f4FFTOut.x);
-    /* Im(XY*) */
-    f4SumStokes.w += (f4FFTOut.y * f4FFTOut.y);
+    f4SumStokes += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
 
     pf4SumStokes[i] = f4SumStokes;
 

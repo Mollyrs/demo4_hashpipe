@@ -28,7 +28,7 @@
 
 #define BYTES_PER_PKT 1032
 #define BYTES_PER_PAYLOAD 1024
-#define NUM_PACKETS_PER_BUFFER 8
+#define NUM_PACKETS_PER_BUFFER 32
 
 double MJD;
 
@@ -238,14 +238,14 @@ static void *run(hashpipe_thread_args_t * args){
 
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;
-		//#ifdef TEST_MODE
+		#ifdef TEST_MODE
 		    for (int j=0; j<BYTES_PER_PAYLOAD*NUM_PACKETS_PER_BUFFER; j++){
 				printf("Copied data[%d]: %d\n",j, db->block[block_idx].data_block[j]);
 			}
 			printf("packet size is: %d\n",packet_size);
 			printf("packet is udp %d\n", PKT_IS_UDP(p_frame));
 			printf("packet dest: %d\n", PKT_UDP_DST(p_frame));
-		//#endif
+		#endif
 
 
 		// Mark block as full

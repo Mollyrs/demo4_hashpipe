@@ -67,11 +67,11 @@ static void *run(hashpipe_thread_args_t * args)
 			time(&rawtime);
 			now = localtime(&rawtime);
 			strftime(f_fil,sizeof(f_fil), "./data_%Y-%m-%d_%H-%M-%S.fil",now);
-			WriteHeader(f_fil,MJD);
+			//WriteHeader(f_fil,MJD);
 			N_files += 1;
 			f_full_flag = 0; // set file full flag to 0 after new file is created
 			printf("file name is: %s\n",f_fil);
-			printf("write header done!\n");
+			//printf("write header done!\n");
 			demo4_file=fopen(f_fil,"a+");
 			printf("starting write data...\n");	
 		}
@@ -85,6 +85,7 @@ static void *run(hashpipe_thread_args_t * args)
 		demo4_output_databuf_set_free(db,block_idx);
 		block_idx = (block_idx + 1) % db->header.n_block;
 		mcnt++;
+		printf("done write data\n");	
 		//Will exit if thread has been cancelled
 		pthread_testcancel();
 	}

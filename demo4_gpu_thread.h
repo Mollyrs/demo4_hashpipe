@@ -32,7 +32,7 @@
 
 #define DEF_PFB_ON          FALSE //TRUE
 
-#define DEF_LEN_SPEC        8192 //2048         // default value for g_iNFFT 
+#define DEF_LEN_SPEC        8192*4 //2048         // default value for g_iNFFT 
 
 #define DEF_ACC             1 //1024           // default number of spectra to accumulate
 //#define DEF_ACC             ACC_LEN           // default number of spectra to accumulate 
@@ -54,7 +54,7 @@
 #define FFTPLAN_OSTRIDE     1
 #define FFTPLAN_IDIST       DEF_LEN_SPEC //2048
 #define FFTPLAN_ODIST       DEF_LEN_SPEC/2 + 1 //1025
-#define FFTPLAN_BATCH       (2 * g_iNumSubBands)
+#define FFTPLAN_BATCH       1 //(2 * g_iNumSubBands)
 
 #define USEC2SEC            1e-6
 
@@ -90,7 +90,7 @@ __global__ void CopyDataForFFT(char4* pc4Data,
                                float* pf4FFTIn);
 int DoFFT(void);
 __global__ void Accumulate(float2 *pf4FFTOut,
-                           float4* pfSumStokes);
+                           float* pfSumStokes);
 void CleanUp(void);
 
 #define CUDASafeCallWithCleanUp(iRet)   __CUDASafeCallWithCleanUp(iRet,       \
