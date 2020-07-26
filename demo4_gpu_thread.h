@@ -32,7 +32,7 @@
 
 #define DEF_PFB_ON          FALSE //TRUE
 
-#define DEF_LEN_SPEC        8192*4 //2048         // default value for g_iNFFT 
+#define DEF_LEN_SPEC        8192*128 //2048         // default value for g_iNFFT 
 
 #define DEF_ACC             1 //1024           // default number of spectra to accumulate
 //#define DEF_ACC             ACC_LEN           // default number of spectra to accumulate 
@@ -86,7 +86,7 @@ typedef unsigned char BYTE;
  * @param[out]  pf4FFTIn    Output data (input to FFT)
  */
 
-__global__ void CopyDataForFFT(char4* pc4Data,
+__global__ void CopyDataForFFT(char* pc4Data,
                                float* pf4FFTIn);
 int DoFFT(void);
 __global__ void Accumulate(float2 *pf4FFTOut,

@@ -9,16 +9,11 @@ extern float* g_pf4FFTOut_d;
 
 
 
-__global__ void CopyDataForFFT(char4 *pc4Data,
+__global__ void CopyDataForFFT(char *pc4Data,
                                float *pf4FFTIn)
 {
     int i = (blockIdx.x * blockDim.x) + threadIdx.x;
-    int j = i*4;
-    pf4FFTIn[j] = (float) pc4Data[i].x;
-    pf4FFTIn[j+1] = (float) pc4Data[i].y;
-    pf4FFTIn[j+2] = (float) pc4Data[i].z;
-    pf4FFTIn[j+3] = (float) pc4Data[i].w;
-
+    pf4FFTIn[i] = (float) pc4Data[i];
     return;
 }
 

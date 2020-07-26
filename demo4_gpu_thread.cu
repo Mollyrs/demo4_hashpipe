@@ -21,19 +21,9 @@ extern "C"{
 #include <time.h>
 #include <cuda_runtime.h>
 
-/* plotting */
-extern float* g_pfSumPowX;
-extern float* g_pfSumPowY;
-extern float* g_pfSumStokesRe;
-extern float* g_pfSumStokesIm;
-extern float* g_pfFreq;
-extern float g_fFSamp;
-
 int g_iIsDataReadDone = FALSE;
-char4* g_pc4InBuf = NULL;
-char4* g_pc4InBufRead = NULL;
-char4* g_pc4Data_d = NULL;              /* raw data starting address */
-char4* g_pc4DataRead_d = NULL;          /* raw data read pointer */
+char* g_pc4Data_d = NULL;              /* raw data starting address */
+char* g_pc4DataRead_d = NULL;          /* raw data read pointer */
 int g_iNFFT = DEF_LEN_SPEC;
 dim3 g_dimBPFB(1, 1, 1);
 dim3 g_dimGPFB(1, 1);
@@ -187,11 +177,7 @@ static int Init(hashpipe_thread_args_t * args)
 void CleanUp()
 {
     /* free resources */
-    if (g_pc4InBuf != NULL)
-    {
-        free(g_pc4InBuf);
-        g_pc4InBuf = NULL;
-    }
+
     if (g_pc4Data_d != NULL)
     {
         (void) cudaFree(g_pc4Data_d);
@@ -224,32 +210,6 @@ void CleanUp()
     /* destroy plan */
     /* TODO: check for plan */
     (void) cufftDestroy(g_stPlan);
-
-    if (g_pfSumPowX != NULL)
-    {
-        free(g_pfSumPowX);
-        g_pfSumPowX = NULL;
-    }
-    if (g_pfSumPowY != NULL)
-    {
-        free(g_pfSumPowY);
-        g_pfSumPowY = NULL;
-    }
-    if (g_pfSumStokesRe != NULL)
-    {
-        free(g_pfSumStokesRe);
-        g_pfSumStokesRe = NULL;
-    }
-    if (g_pfSumStokesIm != NULL)
-    {
-        free(g_pfSumStokesIm);
-        g_pfSumStokesIm = NULL;
-    }
-    if (g_pfFreq != NULL)
-    {
-        free(g_pfFreq);
-        g_pfFreq = NULL;
-    }
 
     /* TODO: check if open */
     cpgclos();

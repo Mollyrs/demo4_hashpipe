@@ -8,10 +8,10 @@
 #define N_INPUT_BLOCKS          3 	// number of input blocks
 #define N_OUTPUT_BLOCKS         3	// number of output blocks
 #define PAGE_SIZE	      	1 //16384 //(8*32768)	// number of spectra per memory, define memory size
-#define N_CHANS_PER_SPEC	8192*4 //2048 //4096	// number of FFT channels per spectrum
+#define N_CHANS_PER_SPEC	8192*128 //2048 //4096	// number of FFT channels per spectrum
 #define N_BYTES_PER_SAMPLE	1	// number of bytes per sample
 #define N_BEAMS			1	// number of beams
-#define N_PKTS_PER_SPEC         32	// number packets per spectrum
+#define N_PKTS_PER_SPEC         1024	// number packets per spectrum
 #define N_POLS                  1       // number of polarizations
 #define N_IFS			4	// number of IFs per Stokes
 #define N_BYTES_HEAD		8	// number bytes of header in packets
