@@ -25,9 +25,9 @@
 #define PKTSOCK_NBLOCKS (1) //(20)
 #define PKTSOCK_NFRAMES (PKTSOCK_FRAMES_PER_BLOCK * PKTSOCK_NBLOCKS)
 
-#define BYTES_PER_PKT 1032
-#define BYTES_PER_PAYLOAD 1024
-#define NUM_PACKETS_PER_BUFFER 1//N_PKTS_PER_SPEC
+#define BYTES_PER_PKT 24//1032
+#define BYTES_PER_PAYLOAD 16//1024
+#define NUM_PACKETS_PER_BUFFER 8//N_PKTS_PER_SPEC
 
 double MJD;
 
@@ -204,6 +204,7 @@ static void *run(hashpipe_thread_args_t * args){
 		hashpipe_pktsock_release_frame(p_frame);
 	}
 
+
 	// Main loop
 	while (run_threads()){		
 		hashpipe_status_lock_safe(&st);
@@ -222,10 +223,9 @@ static void *run(hashpipe_thread_args_t * args){
 			if (p_frame){
 				if(!run_threads()) break;
 				printf("received packet from socket 1\n");
-				i++;
 				hashpipe_pktsock_release_frame(p_frame);
 				memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
-				pthread_testcancel();
+				i++;
 			}
 
 			p_frame2 = hashpipe_pktsock_recv_udp_frame_nonblock(p_ps2, bindport2);
@@ -233,12 +233,13 @@ static void *run(hashpipe_thread_args_t * args){
 				if(!run_threads()) break;
 				printf("received packet from socket 2\n");
 				hashpipe_pktsock_release_frame(p_frame2);
-				//memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
-				pthread_testcancel();
+				memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame2), BYTES_PER_PAYLOAD*sizeof(unsigned char));
+				i++;
 			}
 		}
-
-
+		for (int j=0; j<BYTES_PER_PAYLOAD*NUM_PACKETS_PER_BUFFER; j++){
+				printf("data[%d]: %d\n",j, db->block[block_idx].data_block[j]);
+			}
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;
 		#ifdef TEST_MODE

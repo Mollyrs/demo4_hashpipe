@@ -12,9 +12,9 @@ realPart = realPart +  numpy.array([ScaleFactor * 0.2 * math.cos(2 * math.pi * T
 realPart = realPart +  numpy.array([ScaleFactor * 0.2 * math.cos(2 * math.pi * Tone3Freq * i / SampFreq) for i in range(TimeSamples)])
 realPart = realPart.astype(numpy.int8)
 
-data = numpy.arange(0,128)
+data = numpy.arange(0,32)
 data = data.astype(numpy.int8)
 
 fp=open('simdata','wb')
-fp.write(realPart)
+fp.write(data)
 fp.close()
