@@ -27,17 +27,24 @@
 
 #define BYTES_PER_PKT 1032
 #define BYTES_PER_PAYLOAD 1024
-#define NUM_PACKETS_PER_BUFFER N_PKTS_PER_SPEC
+#define NUM_PACKETS_PER_BUFFER 1//N_PKTS_PER_SPEC
 
 double MJD;
+
+struct hashpipe_pktsock *p_ps;
+struct hashpipe_pktsock *p_ps2;
 
 static int init(hashpipe_thread_args_t * args)
 {
 	// define network params
+	hashpipe_status_t st = args->st;
 	char bindhost[80];
 	int bindport = 12345;
-	hashpipe_status_t st = args->st;
-	strcpy(bindhost, "0.0.0.0");
+	strcpy(bindhost, "127.0.0.1");
+
+	char bindhost2[80];
+	int bindport2 = 5009;
+	strcpy(bindhost2, "127.0.0.2");
 	
 	hashpipe_status_lock_safe(&st);
 	// Get info from status buffer if present (no change if not present)
@@ -51,28 +58,44 @@ static int init(hashpipe_thread_args_t * args)
 	hashpipe_status_unlock_safe(&st);
 
 	// Set up pktsock 
-	struct hashpipe_pktsock *p_ps = (struct hashpipe_pktsock *)
-	malloc(sizeof(struct hashpipe_pktsock));
+	
+	p_ps = (struct hashpipe_pktsock *)malloc(sizeof(struct hashpipe_pktsock));
 	if(!p_ps) {
 		perror(__FUNCTION__);
 		return -1;
 	}
-	/* Make frame_size be a divisor of block size so that frames will be
+
+	p_ps2 = (struct hashpipe_pktsock *)
+	malloc(sizeof(struct hashpipe_pktsock));
+	if(!p_ps2) {
+		perror(__FUNCTION__);
+		return -1;
+	}
+	
+		/* Make frame_size be a divisor of block size so that frames will be
 	contiguous in mapped mempory.  block_size must also be a multiple of
 	page_size.  Easiest way is to oversize the frames to be 16384 bytes, which
 	is bigger than we need, but keeps things easy. */
 	p_ps->frame_size = PKTSOCK_BYTES_PER_FRAME;
-	// total number of frames
 	p_ps->nframes = PKTSOCK_NFRAMES;
-	// number of blocks
 	p_ps->nblocks = PKTSOCK_NBLOCKS;
 	int rv = hashpipe_pktsock_open(p_ps, bindhost, PACKET_RX_RING);
 	if (rv!=HASHPIPE_OK) {
 	hashpipe_error("demo4_net_thread", "Error opening pktsock.");
 	pthread_exit(NULL);
 	}
+
+	p_ps2->frame_size = PKTSOCK_BYTES_PER_FRAME;
+	p_ps2->nframes = PKTSOCK_NFRAMES;
+	p_ps2->nblocks = PKTSOCK_NBLOCKS;
+	int rv2 = hashpipe_pktsock_open(p_ps2, bindhost2, PACKET_RX_RING);
+	if (rv2!=HASHPIPE_OK) {
+	hashpipe_error("demo4_net_thread", "Error opening pktsock2.");
+	pthread_exit(NULL);
+	}
+
 	// Store packet socket pointer in args
-	args->user_data = p_ps;
+	//args->user_data = p_ps;
 	// Success!
 	return 0;
 }
@@ -161,6 +184,7 @@ static void *run(hashpipe_thread_args_t * args){
 
 	uint64_t npackets = 0; //number of received packets
 	int bindport = 0;
+	int bindport2 = 5009;
 	sleep(1);
 
 	hashpipe_status_lock_safe(&st);
@@ -170,12 +194,12 @@ static void *run(hashpipe_thread_args_t * args){
 	hashpipe_status_unlock_safe(&st);
 
 	// Get pktsock from args
-	struct hashpipe_pktsock * p_ps = (struct hashpipe_pktsock*)args->user_data;
+	//struct hashpipe_pktsock * p_ps = (struct hashpipe_pktsock*)args->user_data;
 	pthread_cleanup_push(free, p_ps);
 	pthread_cleanup_push((void (*)(void *))hashpipe_pktsock_close, p_ps);
 
 	// Drop all packets to date
-	unsigned char *p_frame;
+	unsigned char *p_frame, *p_frame2;
 	while(p_frame=hashpipe_pktsock_recv_frame_nonblock(p_ps)) {
 		hashpipe_pktsock_release_frame(p_frame);
 	}
@@ -188,52 +212,32 @@ static void *run(hashpipe_thread_args_t * args){
 		hputi8(st.buf,"NETMCNT",mcnt);
 		hashpipe_status_unlock_safe(&st);
 
-		// Wait for data
-		/* Wait for new block to be free, then clear it
-		 * if necessary and fill its header with new values.
-		 */
-		/*while ((rv=demo4_input_databuf_wait_free(db, block_idx)) 
-			    != HASHPIPE_OK) {
-			if (rv==HASHPIPE_TIMEOUT) {
-			    hashpipe_status_lock_safe(&st);
-			    hputs(st.buf, status_key, "blocked");
-			    hashpipe_status_unlock_safe(&st);
-			    continue;
-			} else {
-			    hashpipe_error(__FUNCTION__, "error waiting for free databuf");
-			    pthread_exit(NULL);
-			    break;
-			}
-		}*/
-
 		hashpipe_status_lock_safe(&st);
 		hputs(st.buf, status_key, "receiving");
 		hashpipe_status_unlock_safe(&st);
 
 		// receiving packets
-		for(int i=0;i<NUM_PACKETS_PER_BUFFER;i++){
-			do {
-				p_frame = hashpipe_pktsock_recv_udp_frame_nonblock(p_ps, bindport);
-			} 
-			while (!p_frame && run_threads());
-			if(!run_threads()) break;
- 			
+		for(int i=0;i<NUM_PACKETS_PER_BUFFER;i){
+			p_frame = hashpipe_pktsock_recv_udp_frame_nonblock(p_ps, bindport);
+			if (p_frame){
+				if(!run_threads()) break;
+				printf("received packet from socket 1\n");
+				i++;
+				hashpipe_pktsock_release_frame(p_frame);
+				memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
+				pthread_testcancel();
+			}
 
-			#ifdef TEST_MODE
-				if(npackets == 0){
-					get_header(p_frame,&pkt_header);
-					SEQ = pkt_header.seq;
-					pkt_loss=0;
-					LAST_SEQ = (SEQ-1);
-				}
-				npackets++;
-				printf("received %lu packets\n",npackets);
-				printf("number of lost packets is : %lu\n",pkt_loss);
-			#endif
-			hashpipe_pktsock_release_frame(p_frame);
-			memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
-			pthread_testcancel();
+			p_frame2 = hashpipe_pktsock_recv_udp_frame_nonblock(p_ps2, bindport2);
+			if (p_frame2){
+				if(!run_threads()) break;
+				printf("received packet from socket 2\n");
+				hashpipe_pktsock_release_frame(p_frame2);
+				//memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
+				pthread_testcancel();
+			}
 		}
+
 
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;

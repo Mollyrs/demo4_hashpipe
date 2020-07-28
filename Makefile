@@ -13,6 +13,7 @@ NVCC_FLAGS = $(NVCCFLAGS) $(CUDA_LDFLAGS) $(LFLAGS_PGPLOT) $(HP_LDFLAGS)
 # HASHPIPE
 HP_LIB_TARGET   = demo4_hashpipe.o
 HP_LIB_SOURCES  = demo4_net_thread.c \
+			  demo4_net_thread2.c \
 		      demo4_output_thread.c \
 		      demo4_databuf.c
 HP_LIB_OBJECTS = $(patsubst %.c,%.o,$(HP_LIB_SOURCES))
