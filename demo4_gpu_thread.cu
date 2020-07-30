@@ -39,7 +39,7 @@ float* g_pf4SumStokes_d = NULL;
 int g_iIsPFBOn = DEF_PFB_ON;
 int g_iNTaps = 1;                       /* 1 if no PFB, NUM_TAPS if PFB */
 /* BUG: crash if file size is less than 32MB */
-int g_iSizeRead = DEF_LEN_SPEC;//DEF_SIZE_READ;
+int g_iSizeRead = DEF_LEN_SPEC;
 int g_iNumSubBands = DEF_NUM_SUBBANDS;
 int g_iFileCoeff = 0;
 char g_acFileCoeff[256] = {0};
