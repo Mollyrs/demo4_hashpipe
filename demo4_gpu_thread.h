@@ -30,18 +30,28 @@
 #define FALSE               0
 #define TRUE                1
 
-#define DEF_LEN_SPEC        8192*64 //2048         // default value for g_iNFFT 
+#define DEF_LEN_IDATA       1048576         // default value for g_iNFFT 
+#define NFFT                524288
 
-#define DEF_ACC             1 //1024           // default number of spectra to accumulate
+#define DEF_ACC             1           // default number of spectra to accumulate
 
 #define FFTPLAN_RANK        1
+
 #define FFTPLAN_ISTRIDE     1
 #define FFTPLAN_OSTRIDE     1
-#define FFTPLAN_IDIST       DEF_LEN_SPEC //2048
-#define FFTPLAN_ODIST       DEF_LEN_SPEC/2 + 1 //1025
-#define FFTPLAN_BATCH       4 
+#define FFTPLAN_IDIST       NFFT*FFTPLAN_ISTRIDE
+#define FFTPLAN_ODIST       NFFT/2 + 1 
+#define FFTPLAN_BATCH       2 
 #define FFTPLAN_ISIZE       FFTPLAN_IDIST*FFTPLAN_BATCH
 #define FFTPLAN_OSIZE       FFTPLAN_ODIST*FFTPLAN_BATCH
+
+#define FFTPLAN2_ISTRIDE     2
+#define FFTPLAN2_OSTRIDE     1
+#define FFTPLAN2_IDIST       NFFT*FFTPLAN2_ISTRIDE
+#define FFTPLAN2_ODIST       NFFT/2 + 1 
+#define FFTPLAN2_BATCH       1 
+#define FFTPLAN2_ISIZE       FFTPLAN2_IDIST*FFTPLAN2_BATCH
+#define FFTPLAN2_OSIZE       FFTPLAN2_ODIST*FFTPLAN2_BATCH
 
 #define USEC2SEC            1e-6
 
@@ -77,6 +87,7 @@ __global__ void CopyDataForFFT(char* pc4Data,
                                float* pf4FFTIn);
 int DoFFT(void);
 __global__ void Accumulate(float2 *pf4FFTOut,
+                           float2 *pf4FFTOut2,
                            float* pfSumStokes);
 void CleanUp(void);
 

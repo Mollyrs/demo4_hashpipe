@@ -4,20 +4,19 @@
 #include "hashpipe_databuf.h"
 
 //#define TEST_MODE		1	// for test
-#define CACHE_ALIGNMENT         256	// cache alignment size	
-#define N_INPUT_BLOCKS          3 	// number of input blocks
-#define N_OUTPUT_BLOCKS         3	// number of output blocks
-#define N_CHANS_PER_SPEC	    8192*64 //2048 //4096	// number of FFT channels per spectrum
-#define N_BYTES_PER_SAMPLE	    1	// number of bytes per sample
-#define N_PKTS_PER_SPEC         512	// number packets per spectrum
-#define N_PKTS_PER_IBUF         N_FFT_BATCH*N_PKTS_PER_SPEC
-#define N_FFT_BATCH             4         
-#define N_BYTES_HEAD		    8	// number bytes of header in packets
-#define N_BYTES_PER_PKT		    1032 //4104	// number bytes per packets
-#define N_BYTES_PKT_DATA	    (N_BYTES_PER_PKT-N_BYTES_HEAD)
-#define ACC_LEN			        1 //512 // accumulation length
-#define SIZEOF_INPUT_DATA_BUF	N_FFT_BATCH*N_BYTES_PKT_DATA*N_BYTES_PER_SAMPLE*N_PKTS_PER_SPEC
-#define SIZEOF_OUT_STOKES	    N_FFT_BATCH*N_CHANS_PER_SPEC/ACC_LEN/2
+#define CACHE_ALIGNMENT         256	    // cache alignment size	
+#define N_INPUT_BLOCKS          3 	    // number of input blocks
+#define N_OUTPUT_BLOCKS         3	    // number of output blocks
+#define N_BYTES_PER_SAMPLE	    1	    // number of bytes per sample
+#define N_PKTS_PER_IBUF         1024    //number packets to receive per iteration   
+#define N_BYTES_HEAD		    8	    // number bytes of header in packets
+#define N_BYTES_PER_PKT		    1032    // number bytes per packets
+#define N_BYTES_PKT_DATA	    (N_BYTES_PER_PKT-N_BYTES_HEAD) //number bytes of data payload
+#define N_BYTES_PER_IBUF	    N_PKTS_PER_IBUF * N_BYTES_PKT_DATA // number of FFT channels per spectrum
+#define ACC_LEN			        1       // accumulation length
+#define SIZEOF_INPUT_DATA_BUF	N_BYTES_PER_IBUF
+#define SIZEOF_OUT_STOKES	    N_BYTES_PER_IBUF/2
+
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[
   CACHE_ALIGNMENT - (sizeof(hashpipe_databuf_t)%CACHE_ALIGNMENT)

@@ -24,21 +24,25 @@ extern "C"{
 int g_iIsDataReadDone = FALSE;
 char* g_pc4Data_d = NULL;              /* raw data starting address */
 char* g_pc4DataRead_d = NULL;          /* raw data read pointer */
-int g_iNFFT = DEF_LEN_SPEC;
+int g_iNFFT = NFFT;
 int g_ISIZE = FFTPLAN_ISIZE;
 int g_OSIZE = FFTPLAN_OSIZE;
+int g_ISIZE2 = FFTPLAN2_ISIZE;
+int g_OSIZE2 = FFTPLAN2_OSIZE;
 dim3 g_dimBCopy(1, 1, 1);
 dim3 g_dimGCopy(1, 1);
 dim3 g_dimBAccum(1, 1, 1);
 dim3 g_dimGAccum(1, 1);
 float* g_pf4FFTIn_d = NULL;
 float2* g_pf4FFTOut_d = NULL;
+float2* g_pf4FFTOut2_d = NULL;
 cufftHandle g_stPlan = {0};
+cufftHandle g_stPlan2 = {0};
 float* g_pf4SumStokes = NULL;
 float* g_pf4SumStokes_d = NULL;
 
 /* BUG: crash if file size is less than 32MB */
-int g_iSizeRead = g_ISIZE;
+int g_iSizeRead = DEF_LEN_IDATA;
 
 static int Init(hashpipe_thread_args_t * args)
 {
@@ -78,24 +82,25 @@ static int Init(hashpipe_thread_args_t * args)
     g_pc4DataRead_d = g_pc4Data_d;
 
     /* calculate kernel parameters */
-    if (g_ISIZE < iMaxThreadsPerBlock)
+    if (DEF_LEN_IDATA < iMaxThreadsPerBlock)
     {
-        g_dimBCopy.x = g_ISIZE;
-        g_dimBAccum.x = g_ISIZE;
+        g_dimBCopy.x = DEF_LEN_IDATA;
+        g_dimBAccum.x = DEF_LEN_IDATA;
     }
     else
     {
         g_dimBCopy.x = iMaxThreadsPerBlock;
         g_dimBAccum.x = iMaxThreadsPerBlock;
     }
-    g_dimGCopy.x = (g_ISIZE) / iMaxThreadsPerBlock;
-    g_dimGAccum.x = (g_ISIZE) / iMaxThreadsPerBlock;
+    g_dimGCopy.x = (DEF_LEN_IDATA) / iMaxThreadsPerBlock;
+    g_dimGAccum.x = (DEF_LEN_IDATA) / iMaxThreadsPerBlock;
 
 
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTIn_d, g_ISIZE * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut_d, g_ISIZE * sizeof(float2)));
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTIn_d, DEF_LEN_IDATA * sizeof(float)));
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut_d, DEF_LEN_IDATA * sizeof(float2)));
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut2_d, DEF_LEN_IDATA * sizeof(float2)));
 
-    g_pf4SumStokes = (float *) malloc(g_ISIZE * sizeof(float));
+    g_pf4SumStokes = (float *) malloc(DEF_LEN_IDATA * sizeof(float));
 
     if (NULL == g_pf4SumStokes)
     {
@@ -104,11 +109,11 @@ static int Init(hashpipe_thread_args_t * args)
                        strerror(errno));
         return EXIT_FAILURE;
     }
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4SumStokes_d, g_ISIZE * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d, '\0', g_ISIZE * sizeof(float)));
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4SumStokes_d, DEF_LEN_IDATA * sizeof(float)));
+    CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d, '\0', DEF_LEN_IDATA * sizeof(float)));
 
     /* create plan */
-    iCUFFTRet = cufftPlanMany(&g_stPlan,
+    iCUFFTRet = cufftPlanMany(&g_stPlan,        
                               FFTPLAN_RANK,
                               &g_iNFFT,
                               &g_ISIZE,
@@ -119,6 +124,23 @@ static int Init(hashpipe_thread_args_t * args)
                               FFTPLAN_ODIST,
                               CUFFT_R2C,
                               FFTPLAN_BATCH);
+    if (iCUFFTRet != CUFFT_SUCCESS)
+    {
+        (void) fprintf(stderr, "ERROR: Plan creation failed!\n");
+        return EXIT_FAILURE;
+    }
+
+    iCUFFTRet = cufftPlanMany(&g_stPlan2,
+                            FFTPLAN_RANK,
+                            &g_iNFFT,
+                            &g_ISIZE2,
+                            FFTPLAN2_ISTRIDE,
+                            FFTPLAN2_IDIST,
+                            &g_OSIZE2,
+                            FFTPLAN2_OSTRIDE,
+                            FFTPLAN2_ODIST,
+                            CUFFT_R2C,
+                            FFTPLAN2_BATCH);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR: Plan creation failed!\n");
@@ -148,6 +170,11 @@ void CleanUp()
         (void) cudaFree(g_pf4FFTOut_d);
         g_pf4FFTOut_d = NULL;
     }
+    if (g_pf4FFTOut2_d != NULL)
+    {
+        (void) cudaFree(g_pf4FFTOut2_d);
+        g_pf4FFTOut2_d = NULL;
+    }
     if (g_pf4SumStokes != NULL)
     {
         free(g_pf4SumStokes);
@@ -163,7 +190,7 @@ void CleanUp()
     /* destroy plan */
     /* TODO: check for plan */
     (void) cufftDestroy(g_stPlan);
-
+    (void) cufftDestroy(g_stPlan2);
     /* TODO: check if open */
     cpgclos();
     return;
@@ -280,7 +307,7 @@ static void *run(hashpipe_thread_args_t * args)
     int iRet = EXIT_SUCCESS;
     int iSpecCount = 0;
     int iNumAcc = DEF_ACC;
-    if(iNumAcc > g_iSizeRead/g_ISIZE){iNumAcc=g_iSizeRead/g_ISIZE;} // if accumulation number larger than data buffer, setit to number spectra frames of buffer
+    if(iNumAcc > g_iSizeRead/DEF_LEN_IDATA){iNumAcc=g_iSizeRead/DEF_LEN_IDATA;} // if accumulation number larger than data buffer, setit to number spectra frames of buffer
 	int n_spec = 0; // number of spectrum
     int iProcData = 0;
     cudaError_t iCUDARet = cudaSuccess;
@@ -379,7 +406,7 @@ static void *run(hashpipe_thread_args_t * args)
                     //return EXIT_FAILURE;
                 }
                 /* update the data read pointer */
-                g_pc4DataRead_d += g_ISIZE;
+                g_pc4DataRead_d += DEF_LEN_IDATA;
 				
 
 				/* do fft */
@@ -396,7 +423,8 @@ static void *run(hashpipe_thread_args_t * args)
 				/* accumulate power x, power y, stokes, if the blanking bit is
 				   not set */
 				//        printf("do stokes calculation and accumulation...,");
-				Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
+                Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
+                                                         g_pf4FFTOut2_d,
 					                                     g_pf4SumStokes_d);
 				CUDASafeCallWithCleanUp(cudaThreadSynchronize());
 				iCUDARet = cudaGetLastError();
@@ -421,16 +449,14 @@ static void *run(hashpipe_thread_args_t * args)
 				    //printf("copy accumulation data from gpu to cpu memory...,");
 				CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
 				                                   g_pf4SumStokes_d,
-				                                   (g_ISIZE
+				                                   (DEF_LEN_IDATA
 				                                    * sizeof(float)),
 				                                    cudaMemcpyDeviceToHost));
 
-				memcpy(db_out->block[curblock_out].Stokes_Full+N_CHANS_PER_SPEC*FFTPLAN_BATCH*n_spec,g_pf4SumStokes,N_CHANS_PER_SPEC*FFTPLAN_BATCH*sizeof(float));
+				memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
                     //printf("Stokes to output done!\n");
                 n_spec ++; 
-                //for (int n=0; n<50; n++){
-                 //   printf("fftout[%d]: %d\n",n,g_pf4FFTOut_d[n]);
-               // }
+
 
 				/* NOTE: Plot() will modify data! */
 				//    printf("number %d of plot.\n",n_frames);
@@ -442,7 +468,7 @@ static void *run(hashpipe_thread_args_t * args)
 				/* zero accumulators */
 				CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d,
 				                               '\0',
-				                               (g_ISIZE
+				                               (DEF_LEN_IDATA
 				                                * sizeof(float))));
 
 				/* if time to read from input buffer */
