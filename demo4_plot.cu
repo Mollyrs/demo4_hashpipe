@@ -9,7 +9,7 @@
 
 #include "demo4_plot.h"
 
-extern int g_iNumSubBands;
+int g_iNumSubBands =1 ;
 extern int g_iNFFT;
 extern float* g_pf4SumStokes;
 

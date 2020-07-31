@@ -44,14 +44,14 @@
 #define FILE_COEFF_DATATYPE "float"
 #define FILE_COEFF_SUFFIX   ".dat"
 
-#define DEF_NUM_SUBBANDS    1
-
 #define FFTPLAN_RANK        1
 #define FFTPLAN_ISTRIDE     1
 #define FFTPLAN_OSTRIDE     1
-#define FFTPLAN_IDIST       DEF_LEN_SPEC //2048
-#define FFTPLAN_ODIST       DEF_LEN_SPEC/2 + 1 //1025
-#define FFTPLAN_BATCH       1 //(2 * g_iNumSubBands)
+#define FFTPLAN_IDIST       DEF_LEN_SPEC/2 //2048
+#define FFTPLAN_ODIST       DEF_LEN_SPEC/4 + 1 //1025
+#define FFTPLAN_BATCH       2 
+#define FFTPLAN_ISIZE       FFTPLAN_IDIST*FFTPLAN_BATCH
+#define FFTPLAN_OSIZE       FFTPLAN_ODIST*FFTPLAN_BATCH
 
 #define USEC2SEC            1e-6
 

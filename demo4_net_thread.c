@@ -62,9 +62,7 @@ static int init(hashpipe_thread_args_t * args)
 	page_size.  Easiest way is to oversize the frames to be 16384 bytes, which
 	is bigger than we need, but keeps things easy. */
 	p_ps->frame_size = PKTSOCK_BYTES_PER_FRAME;
-	// total number of frames
 	p_ps->nframes = PKTSOCK_NFRAMES;
-	// number of blocks
 	p_ps->nblocks = PKTSOCK_NBLOCKS;
 	int rv = hashpipe_pktsock_open(p_ps, bindhost, PACKET_RX_RING);
 	if (rv!=HASHPIPE_OK) {
@@ -76,22 +74,12 @@ static int init(hashpipe_thread_args_t * args)
 	// Success!
 	return 0;
 }
-//typedef struct {
-//    uint64_t mcnt;
-//    uint64_t pchan;	// First chan in packet
-//    uint64_t nchan;	// Number of channels in packet
-//    uint64_t sid;	// Source ID (aka beam id)
-//} packet_header_t;
+
 
 typedef struct {
 	uint64_t    seq;            // sequence of packets
 	unsigned short int source_id;
 	unsigned short int spec_id;
-	/*int        data_type;    // 0 - power spectra, 1 - pure ADC sample
-	int        beam_type;      // 0 - single beam, 1 - multi-beam
-	int         beam_id;        // beam ID
-	int        data_id;      // spectra: 0 - power term, 1 - cross term
-	*/
 } packet_header_t;
 
 static inline void get_header(unsigned char *p_frame, packet_header_t * pkt_header)
@@ -102,13 +90,13 @@ static inline void get_header(unsigned char *p_frame, packet_header_t * pkt_head
 	pkt_header->source_id = (short int)(raw_header >> 56);
 	pkt_header->spec_id = (short int)(raw_header & 0x01);
 
-	//#ifdef TEST_MODE
+	#ifdef TEST_MODE
 	fprintf(stderr,"**Header**\n");
 	fprintf(stderr,"Raw Header is : %lu \n",raw_header);
 	fprintf(stderr,"seq of Header is :%lu \n ",pkt_header->seq);
 	fprintf(stderr,"source id is :%d \n ",pkt_header->source_id);
 	fprintf(stderr,"spec id is :%d \n ",pkt_header->spec_id);
-	//#endif
+	#endif
 }
 
 double UTC2JD(double year, double month, double day){
@@ -187,24 +175,6 @@ static void *run(hashpipe_thread_args_t * args){
 		hputi4(st.buf, "NETBKOUT", block_idx);
 		hputi8(st.buf,"NETMCNT",mcnt);
 		hashpipe_status_unlock_safe(&st);
-
-		// Wait for data
-		/* Wait for new block to be free, then clear it
-		 * if necessary and fill its header with new values.
-		 */
-		/*while ((rv=demo4_input_databuf_wait_free(db, block_idx)) 
-			    != HASHPIPE_OK) {
-			if (rv==HASHPIPE_TIMEOUT) {
-			    hashpipe_status_lock_safe(&st);
-			    hputs(st.buf, status_key, "blocked");
-			    hashpipe_status_unlock_safe(&st);
-			    continue;
-			} else {
-			    hashpipe_error(__FUNCTION__, "error waiting for free databuf");
-			    pthread_exit(NULL);
-			    break;
-			}
-		}*/
 
 		hashpipe_status_lock_safe(&st);
 		hputs(st.buf, status_key, "receiving");
