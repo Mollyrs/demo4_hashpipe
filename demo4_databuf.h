@@ -7,16 +7,17 @@
 #define CACHE_ALIGNMENT         256	// cache alignment size	
 #define N_INPUT_BLOCKS          3 	// number of input blocks
 #define N_OUTPUT_BLOCKS         3	// number of output blocks
-#define PAGE_SIZE	      	    1 //16384 //(8*32768)	// number of spectra per memory, define memory size
 #define N_CHANS_PER_SPEC	    8192*64 //2048 //4096	// number of FFT channels per spectrum
 #define N_BYTES_PER_SAMPLE	    1	// number of bytes per sample
 #define N_PKTS_PER_SPEC         512	// number packets per spectrum
+#define N_PKTS_PER_IBUF         N_FFT_BATCH*N_PKTS_PER_SPEC
+#define N_FFT_BATCH             4         
 #define N_BYTES_HEAD		    8	// number bytes of header in packets
 #define N_BYTES_PER_PKT		    1032 //4104	// number bytes per packets
 #define N_BYTES_PKT_DATA	    (N_BYTES_PER_PKT-N_BYTES_HEAD)
 #define ACC_LEN			        1 //512 // accumulation length
-#define SIZEOF_INPUT_DATA_BUF	PAGE_SIZE*N_BYTES_PKT_DATA*N_BYTES_PER_SAMPLE*N_PKTS_PER_SPEC
-#define SIZEOF_OUT_STOKES	    PAGE_SIZE*N_CHANS_PER_SPEC/ACC_LEN/2
+#define SIZEOF_INPUT_DATA_BUF	N_FFT_BATCH*N_BYTES_PKT_DATA*N_BYTES_PER_SAMPLE*N_PKTS_PER_SPEC
+#define SIZEOF_OUT_STOKES	    N_FFT_BATCH*N_CHANS_PER_SPEC/ACC_LEN/2
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[
   CACHE_ALIGNMENT - (sizeof(hashpipe_databuf_t)%CACHE_ALIGNMENT)

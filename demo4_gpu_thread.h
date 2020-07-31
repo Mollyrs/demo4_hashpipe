@@ -30,26 +30,16 @@
 #define FALSE               0
 #define TRUE                1
 
-#define DEF_PFB_ON          FALSE //TRUE
-
 #define DEF_LEN_SPEC        8192*64 //2048         // default value for g_iNFFT 
 
 #define DEF_ACC             1 //1024           // default number of spectra to accumulate
 
-
-
-// for PFB 
-#define NUM_TAPS            8       // number of multiples of g_iNFFT 
-#define FILE_COEFF_PREFIX   "coeff"
-#define FILE_COEFF_DATATYPE "float"
-#define FILE_COEFF_SUFFIX   ".dat"
-
 #define FFTPLAN_RANK        1
 #define FFTPLAN_ISTRIDE     1
 #define FFTPLAN_OSTRIDE     1
-#define FFTPLAN_IDIST       DEF_LEN_SPEC/2 //2048
-#define FFTPLAN_ODIST       DEF_LEN_SPEC/4 + 1 //1025
-#define FFTPLAN_BATCH       2 
+#define FFTPLAN_IDIST       DEF_LEN_SPEC //2048
+#define FFTPLAN_ODIST       DEF_LEN_SPEC/2 + 1 //1025
+#define FFTPLAN_BATCH       4 
 #define FFTPLAN_ISIZE       FFTPLAN_IDIST*FFTPLAN_BATCH
 #define FFTPLAN_OSIZE       FFTPLAN_ODIST*FFTPLAN_BATCH
 
