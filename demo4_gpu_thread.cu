@@ -116,7 +116,7 @@ static int Init(hashpipe_thread_args_t * args)
     g_dimGAccum.x = (DEF_LEN_IDATA) / iMaxThreadsPerBlock;
 
     if (DEF_LEN_ODATA < iMaxThreadsPerBlock){
-        g_BatchAccumThreads = DEF_LEN_IDATA/4;
+        g_BatchAccumThreads = DEF_LEN_ODATA;
     }
     else{
         g_BatchAccumThreads = iMaxThreadsPerBlock;
@@ -534,7 +534,22 @@ static void *run(hashpipe_thread_args_t * args)
                 BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut2_d,
                                                          2,
                                                          DEF_LEN_ODATA,
-                                                         g_sumBatch2); 
+                                                         g_sumBatch2);
+                                                         
+                BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut3_d,
+                                                            4,
+                                                            DEF_LEN_ODATA,
+                                                            g_sumBatch3);
+
+                BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut4_d,
+                                                            8,
+                                                            DEF_LEN_ODATA,
+                                                            g_sumBatch4);
+
+                BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut5_d,
+                                                            16,
+                                                            DEF_LEN_ODATA,
+                                                            g_sumBatch5);
 
 				CUDASafeCallWithCleanUp(cudaThreadSynchronize());
 				iCUDARet = cudaGetLastError();
@@ -576,6 +591,24 @@ static void *run(hashpipe_thread_args_t * args)
                                                     * sizeof(float)),
                                                     cudaMemcpyDeviceToHost));
 
+                CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*2,
+                                                    g_sumBatch3,
+                                                    (DEF_LEN_ODATA
+                                                    * sizeof(float)),
+                                                    cudaMemcpyDeviceToHost));
+
+                CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*3,
+                                                    g_sumBatch4,
+                                                    (DEF_LEN_ODATA
+                                                    * sizeof(float)),
+                                                    cudaMemcpyDeviceToHost));
+
+                CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*4,
+                                                    g_sumBatch5,
+                                                    (DEF_LEN_ODATA
+                                                    * sizeof(float)),
+                                                    cudaMemcpyDeviceToHost));
+
 				memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
                     //printf("Stokes to output done!\n");
                 n_spec ++; 
@@ -598,6 +631,18 @@ static void *run(hashpipe_thread_args_t * args)
                                                     (DEF_LEN_ODATA
                                                      * sizeof(float))));
                 CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch1,
+                                                '\0',
+                                                (DEF_LEN_ODATA
+                                                * sizeof(float))));
+                CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch3,
+                                                '\0',
+                                                (DEF_LEN_ODATA
+                                                * sizeof(float))));
+                CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch4,
+                                                '\0',
+                                                (DEF_LEN_ODATA
+                                                * sizeof(float))));
+                CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch5,
                                                 '\0',
                                                 (DEF_LEN_ODATA
                                                 * sizeof(float))));

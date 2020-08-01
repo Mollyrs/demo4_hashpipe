@@ -15,7 +15,7 @@
 #define N_BYTES_PER_IBUF	    N_PKTS_PER_IBUF * N_BYTES_PKT_DATA // number of FFT channels per spectrum
 #define ACC_LEN			        1       // accumulation length
 #define SIZEOF_INPUT_DATA_BUF	N_BYTES_PER_IBUF
-#define SIZEOF_OUT_STOKES	    N_BYTES_PER_IBUF/2
+#define SIZEOF_OUT_STOKES	    N_BYTES_PER_IBUF/4
 
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[

@@ -41,18 +41,35 @@ int DoFFT()
                              (cufftComplex*) g_pf4FFTOut1_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
-        (void) fprintf(stderr, "ERROR! FFT for polarisation X failed!\n");
+        (void) fprintf(stderr, "ERROR! FFT1 failed!\n");
+        return EXIT_FAILURE;
+    }
+    
+    iCUFFTRet = cufftExecR2C(g_stPlan2, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut2_d);
+    if (iCUFFTRet != CUFFT_SUCCESS)
+    {
+        (void) fprintf(stderr, "ERROR! FFT2 failed!\n");
         return EXIT_FAILURE;
     }
 
-    /* execute plan */
-    
-    iCUFFTRet = cufftExecR2C(g_stPlan2,
-        (cufftReal*) g_pf4FFTIn_d,
-        (cufftComplex*) g_pf4FFTOut2_d);
+    iCUFFTRet = cufftExecR2C(g_stPlan3, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut3_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
-        (void) fprintf(stderr, "ERROR! FFT for polarisation X failed!\n");
+        (void) fprintf(stderr, "ERROR! FFT3 failed!\n");
+        return EXIT_FAILURE;
+    }
+
+    iCUFFTRet = cufftExecR2C(g_stPlan4, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut4_d);
+    if (iCUFFTRet != CUFFT_SUCCESS)
+    {
+        (void) fprintf(stderr, "ERROR! FFT4 failed!\n");
+        return EXIT_FAILURE;
+    }
+
+    iCUFFTRet = cufftExecR2C(g_stPlan5, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut5_d);
+    if (iCUFFTRet != CUFFT_SUCCESS)
+    {
+        (void) fprintf(stderr, "ERROR! FFT5 failed!\n");
         return EXIT_FAILURE;
     }
     
