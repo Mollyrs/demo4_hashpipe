@@ -3,12 +3,21 @@
 
 #include "demo4_gpu_thread.h"
 
-extern cufftHandle g_stPlan;
+extern cufftHandle g_stPlan1;
 extern float* g_pf4FFTIn_d;
-extern float* g_pf4FFTOut_d;
+extern float* g_pf4FFTOut1_d;
 
 extern cufftHandle g_stPlan2;
 extern float* g_pf4FFTOut2_d;
+
+extern cufftHandle g_stPlan3;
+extern float* g_pf4FFTOut3_d;
+
+extern cufftHandle g_stPlan4;
+extern float* g_pf4FFTOut4_d;
+
+extern cufftHandle g_stPlan5;
+extern float* g_pf4FFTOut5_d;
 
 
 
@@ -27,9 +36,9 @@ int DoFFT()
     cufftResult iCUFFTRet = CUFFT_SUCCESS;
 
     /* execute plan */
-    iCUFFTRet = cufftExecR2C(g_stPlan,
+    iCUFFTRet = cufftExecR2C(g_stPlan1,
                              (cufftReal*) g_pf4FFTIn_d,
-                             (cufftComplex*) g_pf4FFTOut_d);
+                             (cufftComplex*) g_pf4FFTOut1_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR! FFT for polarisation X failed!\n");

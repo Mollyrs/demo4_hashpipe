@@ -1,10 +1,10 @@
 #! /usr/bin/python
 import time,numpy,struct,math
 
-SampFreq = 32e6     # 32 MHz
+SampFreq = 64e6     # 32 MHz
 Tone1Freq = 15e6    # 15 MHz
 Tone2Freq = 1e6    # 7 MHz
-Tone3Freq = 5e6     # 6 Mhz
+Tone3Freq = 5e5     # 6 Mhz
 ScaleFactor = 127   # 8 bit sample range
 TimeSamples = 8192*64*2   # time samples per frame
 realPart = numpy.array([ScaleFactor * 0.1 * math.cos(2 * math.pi * Tone1Freq * i / SampFreq) for i in range(TimeSamples)])
