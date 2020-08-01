@@ -33,6 +33,8 @@ dim3 g_dimBCopy(1, 1, 1);
 dim3 g_dimGCopy(1, 1);
 dim3 g_dimBAccum(1, 1, 1);
 dim3 g_dimGAccum(1, 1);
+int g_BatchAccumThreads;
+int g_BatchAccumBlocks;
 float* g_pf4FFTIn_d = NULL;
 float2* g_pf4FFTOut_d = NULL;
 float2* g_pf4FFTOut2_d = NULL;
@@ -40,6 +42,9 @@ cufftHandle g_stPlan = {0};
 cufftHandle g_stPlan2 = {0};
 float* g_pf4SumStokes = NULL;
 float* g_pf4SumStokes_d = NULL;
+
+float* g_sumBatch1 = NULL; 
+float* g_sumBatch2 = NULL;
 
 /* BUG: crash if file size is less than 32MB */
 int g_iSizeRead = DEF_LEN_IDATA;
@@ -95,6 +100,14 @@ static int Init(hashpipe_thread_args_t * args)
     g_dimGCopy.x = (DEF_LEN_IDATA) / iMaxThreadsPerBlock;
     g_dimGAccum.x = (DEF_LEN_IDATA) / iMaxThreadsPerBlock;
 
+    if (DEF_LEN_ODATA < iMaxThreadsPerBlock){
+        g_BatchAccumThreads = DEF_LEN_IDATA/4;
+    }
+    else{
+        g_BatchAccumThreads = iMaxThreadsPerBlock;
+    }
+    g_BatchAccumBlocks = DEF_LEN_ODATA/iMaxThreadsPerBlock;
+
 
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTIn_d, DEF_LEN_IDATA * sizeof(float)));
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut_d, DEF_LEN_IDATA * sizeof(float2)));
@@ -111,6 +124,12 @@ static int Init(hashpipe_thread_args_t * args)
     }
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4SumStokes_d, DEF_LEN_IDATA * sizeof(float)));
     CUDASafeCallWithCleanUp(cudaMemset(g_pf4SumStokes_d, '\0', DEF_LEN_IDATA * sizeof(float)));
+
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_sumBatch2, DEF_LEN_ODATA * sizeof(float)));
+    CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch2, '\0', DEF_LEN_ODATA * sizeof(float)));
+
+    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_sumBatch1, DEF_LEN_ODATA * sizeof(float)));
+    CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch1, '\0', DEF_LEN_ODATA * sizeof(float)));
 
     /* create plan */
     iCUFFTRet = cufftPlanMany(&g_stPlan,        
@@ -184,6 +203,16 @@ void CleanUp()
     {
         (void) cudaFree(g_pf4SumStokes_d);
         g_pf4SumStokes_d = NULL;
+    }
+    if (g_sumBatch2 != NULL)
+    {
+        (void) cudaFree(g_sumBatch2);
+        g_sumBatch2 = NULL;
+    }
+    if (g_sumBatch1 != NULL)
+    {
+        (void) cudaFree(g_sumBatch1);
+        g_sumBatch1 = NULL;
     }
 
 
@@ -423,9 +452,19 @@ static void *run(hashpipe_thread_args_t * args)
 				/* accumulate power x, power y, stokes, if the blanking bit is
 				   not set */
 				//        printf("do stokes calculation and accumulation...,");
-                Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
-                                                         g_pf4FFTOut2_d,
-					                                     g_pf4SumStokes_d);
+                //Accumulate<<<g_dimGAccum, g_dimBAccum>>>(g_pf4FFTOut_d,
+                //                                         g_pf4SumStokes_d);
+
+                BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut2_d,
+                                                            1,
+                                                            DEF_LEN_ODATA,
+                                                            g_sumBatch1); 
+                
+                BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut_d,
+                                                         2,
+                                                         DEF_LEN_ODATA,
+                                                         g_sumBatch2); 
+
 				CUDASafeCallWithCleanUp(cudaThreadSynchronize());
 				iCUDARet = cudaGetLastError();
 				if (iCUDARet != cudaSuccess)
@@ -446,12 +485,25 @@ static void *run(hashpipe_thread_args_t * args)
 			{
 				//n_spec ++; //bug, starts writing too late, moved to after write
 				/* dump to buffer */
-				    //printf("copy accumulation data from gpu to cpu memory...,");
+                    //printf("copy accumulation data from gpu to cpu memory...,");
+                    /*
 				CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
 				                                   g_pf4SumStokes_d,
 				                                   (DEF_LEN_IDATA
 				                                    * sizeof(float)),
-				                                    cudaMemcpyDeviceToHost));
+                                                    cudaMemcpyDeviceToHost));
+                            */                        
+                CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
+                                                g_sumBatch1,
+                                                (DEF_LEN_ODATA
+                                                * sizeof(float)),
+                                                cudaMemcpyDeviceToHost));
+
+                CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA,
+                                                    g_sumBatch2,
+                                                    (DEF_LEN_ODATA
+                                                    * sizeof(float)),
+                                                    cudaMemcpyDeviceToHost));
 
 				memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
                     //printf("Stokes to output done!\n");
@@ -470,7 +522,14 @@ static void *run(hashpipe_thread_args_t * args)
 				                               '\0',
 				                               (DEF_LEN_IDATA
 				                                * sizeof(float))));
-
+                CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch2,
+                                                    '\0',
+                                                    (DEF_LEN_ODATA
+                                                     * sizeof(float))));
+                CUDASafeCallWithCleanUp(cudaMemset(g_sumBatch1,
+                                                '\0',
+                                                (DEF_LEN_ODATA
+                                                * sizeof(float))));
 				/* if time to read from input buffer */
 				iProcData = 0;
 				(void) gettimeofday(&stStop, NULL);

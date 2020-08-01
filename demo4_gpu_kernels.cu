@@ -50,17 +50,36 @@ int DoFFT()
     return EXIT_SUCCESS;
 }
 
-__global__ void Accumulate(float2 *pf4FFTOut, //2 batch
-                           float2 *pf4FFTOut2, //1 batch
+__global__ void Accumulate(float2 *pf4FFTOut, 
                            float *pf4SumStokes)
 {
     int i = (blockIdx.x * blockDim.x) + threadIdx.x;
-    float2 f4FFTOut = pf4FFTOut2[i];
+    float2 f4FFTOut = pf4FFTOut[i];
     float f4SumStokes = pf4SumStokes[i];
 
     f4SumStokes += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
 
     pf4SumStokes[i] = f4SumStokes;
+
+    return;
+}
+
+__global__ void BatchAccumulate(float2 *pf4FFTOut, //2 batch
+                                int numBatch,
+                                int sizeBatch,
+                                float *sumBatches)
+{
+    int i = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+    float2 f4FFTOut;
+    float isumBatches = sumBatches[i];
+    
+    for (int n=0; n < numBatch; n++){
+        f4FFTOut = pf4FFTOut[i+n*sizeBatch];
+        isumBatches += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
+    }
+
+    sumBatches[i] = isumBatches;
 
     return;
 }

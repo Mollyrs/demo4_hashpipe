@@ -30,7 +30,8 @@
 #define FALSE               0
 #define TRUE                1
 
-#define DEF_LEN_IDATA       1048576         // default value for g_iNFFT 
+#define DEF_LEN_IDATA       1048576
+#define DEF_LEN_ODATA       262144        
 #define NFFT                524288
 
 #define DEF_ACC             1           // default number of spectra to accumulate
@@ -87,8 +88,11 @@ __global__ void CopyDataForFFT(char* pc4Data,
                                float* pf4FFTIn);
 int DoFFT(void);
 __global__ void Accumulate(float2 *pf4FFTOut,
-                           float2 *pf4FFTOut2,
                            float* pfSumStokes);
+__global__ void BatchAccumulate(float2 *pf4FFTOut,
+                            int numBatch,
+                            int sizeBatch,
+                            float* pfSumStokes);
 void CleanUp(void);
 
 #define CUDASafeCallWithCleanUp(iRet)   __CUDASafeCallWithCleanUp(iRet,       \
