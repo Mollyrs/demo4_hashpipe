@@ -507,27 +507,27 @@ static void *run(hashpipe_thread_args_t * args)
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut1_d,
                             1,
-                            DEF_LEN_ODATA,
+                            DEF_LEN_ODATA+1,
                             g_sumBatch1); 
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut2_d,
                             2,
-                            DEF_LEN_ODATA,
+                            DEF_LEN_ODATA+1,
                             g_sumBatch2);
                         
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut3_d,
                             4,
-                            DEF_LEN_ODATA,
+                            DEF_LEN_ODATA+1,
                             g_sumBatch3);
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut4_d,
                             8,
-                            DEF_LEN_ODATA,
+                            DEF_LEN_ODATA+1,
                             g_sumBatch4);
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut5_d,
                             16,
-                            DEF_LEN_ODATA,
+                            DEF_LEN_ODATA+1,
                             g_sumBatch5);
 
             CUDASafeCallWithCleanUp(cudaThreadSynchronize());
@@ -549,32 +549,32 @@ static void *run(hashpipe_thread_args_t * args)
 
 
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
-                                        g_sumBatch1,
-                                        (DEF_LEN_ODATA
+                                        g_sumBatch1+DEF_LEN_ODATA/2,
+                                        (DEF_LEN_ODATA/2
                                         * sizeof(float)),
                                         cudaMemcpyDeviceToHost));
 
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA/2,
+                                            g_sumBatch2+DEF_LEN_ODATA/2,
+                                            (DEF_LEN_ODATA/2
+                                            * sizeof(float)),
+                                            cudaMemcpyDeviceToHost));
+
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA,
-                                            g_sumBatch2,
-                                            (DEF_LEN_ODATA
+                                            g_sumBatch3+DEF_LEN_ODATA/2,
+                                            (DEF_LEN_ODATA/2
+                                            * sizeof(float)),
+                                            cudaMemcpyDeviceToHost));
+
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*3/2,
+                                            g_sumBatch4+DEF_LEN_ODATA/2,
+                                            (DEF_LEN_ODATA/2
                                             * sizeof(float)),
                                             cudaMemcpyDeviceToHost));
 
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*2,
-                                            g_sumBatch3,
-                                            (DEF_LEN_ODATA
-                                            * sizeof(float)),
-                                            cudaMemcpyDeviceToHost));
-
-        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*3,
-                                            g_sumBatch4,
-                                            (DEF_LEN_ODATA
-                                            * sizeof(float)),
-                                            cudaMemcpyDeviceToHost));
-
-        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*4,
-                                            g_sumBatch5,
-                                            (DEF_LEN_ODATA
+                                            g_sumBatch5+DEF_LEN_ODATA/2,
+                                            (DEF_LEN_ODATA/2
                                             * sizeof(float)),
                                             cudaMemcpyDeviceToHost));
 

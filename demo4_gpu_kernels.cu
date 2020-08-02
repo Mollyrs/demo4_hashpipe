@@ -90,7 +90,7 @@ __global__ void Accumulate(float2 *pf4FFTOut,
     return;
 }
 
-__global__ void BatchAccumulate(float2 *pf4FFTOut, //2 batch
+__global__ void BatchAccumulate(float2 *pf4FFTOut, 
                                 int numBatch,
                                 int sizeBatch,
                                 float *sumBatches)

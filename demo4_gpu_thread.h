@@ -30,9 +30,9 @@
 #define FALSE               0
 #define TRUE                1
 
-#define DEF_LEN_IDATA       1048576
-#define DEF_LEN_ODATA       32768//262144        
-#define NFFT                65536//524288
+#define DEF_LEN_IDATA       67108864 //1048576
+#define DEF_LEN_ODATA       2097152 //32768   
+#define NFFT                4194304 //65536
 
 #define DEF_ACC             2           // default number of spectra to accumulate
 
