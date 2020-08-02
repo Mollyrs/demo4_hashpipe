@@ -13,7 +13,6 @@
 #define N_BYTES_PER_PKT		    1032    // number bytes per packets
 #define N_BYTES_PKT_DATA	    (N_BYTES_PER_PKT-N_BYTES_HEAD) //number bytes of data payload
 #define N_BYTES_PER_IBUF	    N_PKTS_PER_IBUF * N_BYTES_PKT_DATA // number of FFT channels per spectrum
-#define ACC_LEN			        1       // accumulation length
 #define SIZEOF_INPUT_DATA_BUF	N_BYTES_PER_IBUF
 #define SIZEOF_OUT_STOKES	    N_BYTES_PER_IBUF/4
 

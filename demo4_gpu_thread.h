@@ -34,7 +34,7 @@
 #define DEF_LEN_ODATA       32768//262144        
 #define NFFT                65536//524288
 
-#define DEF_ACC             1           // default number of spectra to accumulate
+#define DEF_ACC             2           // default number of spectra to accumulate
 
 #define FFTPLAN_RANK        1
 

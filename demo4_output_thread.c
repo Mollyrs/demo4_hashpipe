@@ -32,6 +32,7 @@ static void *run(hashpipe_thread_args_t * args)
 	double  FILE_SIZE_MB = 1000; // MB
 	double  FILE_SIZE_NOW_MB = 0;
 	FILE * demo4_file;
+
 	while (run_threads()) {
 		hashpipe_status_lock_safe(&st);
 		hputi4(st.buf, "OUTBLKIN", block_idx);
@@ -54,6 +55,7 @@ static void *run(hashpipe_thread_args_t * args)
 				break;
 			}
 		}
+
 		// set status to processing
 		hashpipe_status_lock_safe(&st);
 		hputs(st.buf, status_key, "processing");
@@ -85,7 +87,7 @@ static void *run(hashpipe_thread_args_t * args)
 		demo4_output_databuf_set_free(db,block_idx);
 		block_idx = (block_idx + 1) % db->header.n_block;
 		mcnt++;
-		printf("done write data\n");	
+		printf("done write data \n");	
 		//Will exit if thread has been cancelled
 		pthread_testcancel();
 	}
