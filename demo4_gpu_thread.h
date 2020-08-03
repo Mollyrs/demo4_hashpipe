@@ -117,6 +117,11 @@ __global__ void BatchAccumulate(float2 *pf4FFTOut,
                             int numBatch,
                             int sizeBatch,
                             float* pfSumStokes);
+__global__ void FIR(float *FFTIn, 
+                    float *FIRFFTIn,
+                    int len,
+                    int FFTnum);
+
 void CleanUp(void);
 
 #define CUDASafeCallWithCleanUp(iRet)   __CUDASafeCallWithCleanUp(iRet,       \
