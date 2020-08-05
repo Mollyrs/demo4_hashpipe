@@ -42,7 +42,7 @@ int DoFFT()
 
     /* execute plan */
     iCUFFTRet = cufftExecR2C(g_stPlan1,
-                             (cufftReal*) g_FIRFFTIn1_d,
+                             (cufftReal*) g_pf4FFTIn_d,
                              (cufftComplex*) g_pf4FFTOut1_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
@@ -50,21 +50,21 @@ int DoFFT()
         return EXIT_FAILURE;
     }
     
-    iCUFFTRet = cufftExecR2C(g_stPlan2, (cufftReal*) g_FIRFFTIn2_d, (cufftComplex*) g_pf4FFTOut2_d);
+    iCUFFTRet = cufftExecR2C(g_stPlan2, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut2_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR! FFT2 failed!\n");
         return EXIT_FAILURE;
     }
-
-    iCUFFTRet = cufftExecR2C(g_stPlan3, (cufftReal*) g_FIRFFTIn3_d, (cufftComplex*) g_pf4FFTOut3_d);
+    
+    iCUFFTRet = cufftExecR2C(g_stPlan3, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut3_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR! FFT3 failed!\n");
         return EXIT_FAILURE;
     }
 
-    iCUFFTRet = cufftExecR2C(g_stPlan4, (cufftReal*) g_FIRFFTIn4_d, (cufftComplex*) g_pf4FFTOut4_d);
+    iCUFFTRet = cufftExecR2C(g_stPlan4, (cufftReal*) g_pf4FFTIn_d, (cufftComplex*) g_pf4FFTOut4_d);
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR! FFT4 failed!\n");
@@ -110,7 +110,7 @@ __global__ void BatchAccumulate(float2 *pf4FFTOut,
         isumBatches += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
     }
 
-    sumBatches[i] = isumBatches; ///numBatch;
+    sumBatches[i] = isumBatches/numBatch;
 
     return;
 }

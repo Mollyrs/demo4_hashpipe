@@ -25,6 +25,11 @@ int g_iIsDataReadDone = FALSE;
 char* g_pc4Data_d = NULL;              /* raw data starting address */
 char* g_pc4DataRead_d = NULL;          /* raw data read pointer */
 int g_iNFFT = NFFT;
+int g_iNFFT1 = NFFT;
+int g_iNFFT2 = NFFT/2;
+int g_iNFFT3 = NFFT/4;
+int g_iNFFT4 = NFFT/8;
+int g_iNFFT5 = NFFT/16;
 int g_ISIZE1 = FFTPLAN1_ISIZE;
 int g_OSIZE1 = FFTPLAN1_OSIZE;
 int g_ISIZE2 = FFTPLAN2_ISIZE;
@@ -169,7 +174,7 @@ static int Init(hashpipe_thread_args_t * args)
     /* create plan */
     iCUFFTRet = cufftPlanMany(&g_stPlan1,        
                               FFTPLAN_RANK,
-                              &g_iNFFT,
+                              &g_iNFFT1,
                               &g_ISIZE1,
                               FFTPLAN1_ISTRIDE,
                               FFTPLAN1_IDIST,
@@ -183,16 +188,16 @@ static int Init(hashpipe_thread_args_t * args)
         (void) fprintf(stderr, "ERROR: Plan1 creation failed!\n");
         return EXIT_FAILURE;
     }
-
-    iCUFFTRet = cufftPlanMany(&g_stPlan2, FFTPLAN_RANK, &g_iNFFT, &g_ISIZE2, FFTPLAN2_ISTRIDE, FFTPLAN2_IDIST, 
+    
+    iCUFFTRet = cufftPlanMany(&g_stPlan2, FFTPLAN_RANK, &g_iNFFT2, &g_ISIZE2, FFTPLAN2_ISTRIDE, FFTPLAN2_IDIST, 
                                      &g_OSIZE2, FFTPLAN2_OSTRIDE, FFTPLAN2_ODIST, CUFFT_R2C, FFTPLAN2_BATCH);                           
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
         (void) fprintf(stderr, "ERROR: Plan2 creation failed!\n");
         return EXIT_FAILURE;
     }
-
-    iCUFFTRet = cufftPlanMany(&g_stPlan3, FFTPLAN_RANK, &g_iNFFT, &g_ISIZE3, FFTPLAN3_ISTRIDE, FFTPLAN3_IDIST, 
+    
+    iCUFFTRet = cufftPlanMany(&g_stPlan3, FFTPLAN_RANK, &g_iNFFT3, &g_ISIZE3, FFTPLAN3_ISTRIDE, FFTPLAN3_IDIST, 
                                     &g_OSIZE3, FFTPLAN3_OSTRIDE, FFTPLAN3_ODIST, CUFFT_R2C, FFTPLAN3_BATCH);                           
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
@@ -200,7 +205,7 @@ static int Init(hashpipe_thread_args_t * args)
         return EXIT_FAILURE;
     }
 
-    iCUFFTRet = cufftPlanMany(&g_stPlan4, FFTPLAN_RANK, &g_iNFFT, &g_ISIZE4, FFTPLAN4_ISTRIDE, FFTPLAN4_IDIST, 
+    iCUFFTRet = cufftPlanMany(&g_stPlan4, FFTPLAN_RANK, &g_iNFFT4, &g_ISIZE4, FFTPLAN4_ISTRIDE, FFTPLAN4_IDIST, 
                                     &g_OSIZE4, FFTPLAN4_OSTRIDE, FFTPLAN4_ODIST, CUFFT_R2C, FFTPLAN4_BATCH);                           
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
@@ -208,7 +213,7 @@ static int Init(hashpipe_thread_args_t * args)
         return EXIT_FAILURE;
     }
 
-    iCUFFTRet = cufftPlanMany(&g_stPlan5, FFTPLAN_RANK, &g_iNFFT, &g_ISIZE5, FFTPLAN5_ISTRIDE, FFTPLAN5_IDIST, 
+    iCUFFTRet = cufftPlanMany(&g_stPlan5, FFTPLAN_RANK, &g_iNFFT5, &g_ISIZE5, FFTPLAN5_ISTRIDE, FFTPLAN5_IDIST, 
                                 &g_OSIZE5, FFTPLAN5_OSTRIDE, FFTPLAN5_ODIST, CUFFT_R2C, FFTPLAN5_BATCH);                           
     if (iCUFFTRet != CUFFT_SUCCESS)
     {
@@ -504,10 +509,10 @@ static void *run(hashpipe_thread_args_t * args)
             CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
                 g_pf4FFTIn_d);
 
-            FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn1_d,DEF_LEN_IDATA,1);
-            FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn2_d,DEF_LEN_IDATA,2);
-            FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn3_d,DEF_LEN_IDATA,3);
-            FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn4_d,DEF_LEN_IDATA,4);
+            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn1_d,DEF_LEN_IDATA,1);
+            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn2_d,DEF_LEN_IDATA,2);
+            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn3_d,DEF_LEN_IDATA,3);
+            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn4_d,DEF_LEN_IDATA,4);
 
             CUDASafeCallWithCleanUp(cudaThreadSynchronize());
             iCUDARet = cudaGetLastError();
@@ -531,27 +536,27 @@ static void *run(hashpipe_thread_args_t * args)
                             1,
                             DEF_LEN_ODATA+1,
                             g_sumBatch1); 
-
+            
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut2_d,
                             2,
-                            DEF_LEN_ODATA+1,
+                            DEF_LEN_ODATA/2+1,
                             g_sumBatch2);
-                        
+                       
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut3_d,
                             4,
-                            DEF_LEN_ODATA+1,
+                            DEF_LEN_ODATA/4+1,
                             g_sumBatch3);
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut4_d,
                             8,
-                            DEF_LEN_ODATA+1,
+                            DEF_LEN_ODATA/8+1,
                             g_sumBatch4);
 
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut5_d,
                             16,
-                            DEF_LEN_ODATA+1,
+                            DEF_LEN_ODATA/16+1,
                             g_sumBatch5);
-
+                
             CUDASafeCallWithCleanUp(cudaThreadSynchronize());
             iCUDARet = cudaGetLastError();
             if (iCUDARet != cudaSuccess)
@@ -570,6 +575,37 @@ static void *run(hashpipe_thread_args_t * args)
         }
 
 
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
+            g_sumBatch1,
+            (DEF_LEN_ODATA
+            * sizeof(float)),
+            cudaMemcpyDeviceToHost));
+                
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA,
+                        g_sumBatch2,
+                        (DEF_LEN_ODATA/2
+                        * sizeof(float)),
+                        cudaMemcpyDeviceToHost));
+
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*3/2,
+                        g_sumBatch3,
+                        (DEF_LEN_ODATA/4
+                        * sizeof(float)),
+                        cudaMemcpyDeviceToHost));
+
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*7/4,
+                        g_sumBatch4,
+                        (DEF_LEN_ODATA/8
+                        * sizeof(float)),
+                        cudaMemcpyDeviceToHost));
+
+        CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes + DEF_LEN_ODATA*15/8,
+                        g_sumBatch5,
+                        (DEF_LEN_ODATA/16
+                        * sizeof(float)),
+                        cudaMemcpyDeviceToHost));
+
+        /*
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
                                         g_sumBatch1+DEF_LEN_ODATA/2,
                                         (DEF_LEN_ODATA/2
@@ -599,7 +635,7 @@ static void *run(hashpipe_thread_args_t * args)
                                             (DEF_LEN_ODATA/2
                                             * sizeof(float)),
                                             cudaMemcpyDeviceToHost));
-
+                                                */
         memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
             //printf("Stokes to output done!\n");
         n_spec++; 
