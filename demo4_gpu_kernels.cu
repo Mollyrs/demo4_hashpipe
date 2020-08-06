@@ -110,7 +110,7 @@ __global__ void BatchAccumulate(float2 *pf4FFTOut,
         isumBatches += sqrtf((f4FFTOut.x * f4FFTOut.x) + (f4FFTOut.y * f4FFTOut.y));
     }
 
-    sumBatches[i] = isumBatches/numBatch;
+    sumBatches[i] = isumBatches;
 
     return;
 }

@@ -14,7 +14,7 @@
 #define N_BYTES_PKT_DATA	    (N_BYTES_PER_PKT-N_BYTES_HEAD) //number bytes of data payload
 #define N_BYTES_PER_IBUF	    N_PKTS_PER_IBUF * N_BYTES_PKT_DATA // number of FFT channels per spectrum
 #define SIZEOF_INPUT_DATA_BUF	N_BYTES_PER_IBUF
-#define SIZEOF_OUT_STOKES	    67108864 //130023424 //N_BYTES_PER_IBUF/4
+#define SIZEOF_OUT_STOKES	    5242880 //67108864 //N_BYTES_PER_IBUF/4
 
 // Used to pad after hashpipe_databuf_t to maintain cache alignment
 typedef uint8_t hashpipe_databuf_cache_alignment[

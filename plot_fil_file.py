@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy 
 n = 1048576*2
-fp = open('data_2020-08-04_19-36-44.fil','rb')
+fp = open('data_2020-08-05_13-05-52.fil','rb')
 #fp = open('5FFT_2Mchannel_128Hz_4Tone.fil')
 data = numpy.fromfile(fp,dtype=numpy.float32)
 #plt.plot(data[4*n:5*n])
