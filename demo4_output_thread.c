@@ -90,6 +90,8 @@ static void *run(hashpipe_thread_args_t * args)
 		printf("done write data \n");	
 		//Will exit if thread has been cancelled
 		pthread_testcancel();
+
+		return THREAD_OK;
 	}
 	fclose(demo4_file);
 	return THREAD_OK;

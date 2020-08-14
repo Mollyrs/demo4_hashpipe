@@ -47,11 +47,6 @@ dim3 g_dimGAccum(1, 1);
 int g_BatchAccumThreads;
 int g_BatchAccumBlocks;
 float* g_pf4FFTIn_d = NULL;
-float* g_FIRFFTIn1_d = NULL;
-float* g_FIRFFTIn2_d = NULL;
-float* g_FIRFFTIn3_d = NULL;
-float* g_FIRFFTIn4_d = NULL;
-float* g_FIRFFTIn5_d = NULL;
 float2* g_pf4FFTOut1_d = NULL;
 float2* g_pf4FFTOut2_d = NULL;
 float2* g_pf4FFTOut3_d = NULL;
@@ -137,11 +132,6 @@ static int Init(hashpipe_thread_args_t * args)
 
 
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTIn_d, DEF_LEN_IDATA * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_FIRFFTIn1_d, DEF_LEN_IDATA * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_FIRFFTIn2_d, DEF_LEN_IDATA * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_FIRFFTIn3_d, DEF_LEN_IDATA * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_FIRFFTIn4_d, DEF_LEN_IDATA * sizeof(float)));
-    CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_FIRFFTIn5_d, DEF_LEN_IDATA * sizeof(float)));
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut1_d, DEF_LEN_IDATA * sizeof(float2)));
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut2_d, DEF_LEN_IDATA * sizeof(float2)));
     CUDASafeCallWithCleanUp(cudaMalloc((void **) &g_pf4FFTOut3_d, DEF_LEN_IDATA * sizeof(float2)));
@@ -239,11 +229,6 @@ void CleanUp()
         (void) cudaFree(g_pf4FFTIn_d);
         g_pf4FFTIn_d = NULL;
     }
-    if (g_FIRFFTIn1_d != NULL){ (void) cudaFree(g_FIRFFTIn1_d); g_FIRFFTIn1_d = NULL;}
-    if (g_FIRFFTIn2_d != NULL){ (void) cudaFree(g_FIRFFTIn2_d); g_FIRFFTIn2_d = NULL;}
-    if (g_FIRFFTIn3_d != NULL){ (void) cudaFree(g_FIRFFTIn3_d); g_FIRFFTIn3_d = NULL;}
-    if (g_FIRFFTIn4_d != NULL){ (void) cudaFree(g_FIRFFTIn4_d); g_FIRFFTIn4_d = NULL;}
-    if (g_FIRFFTIn5_d != NULL){ (void) cudaFree(g_FIRFFTIn5_d); g_FIRFFTIn5_d = NULL;}
     if (g_pf4FFTOut1_d != NULL)
     {
         (void) cudaFree(g_pf4FFTOut1_d);
@@ -496,7 +481,7 @@ static void *run(hashpipe_thread_args_t * args)
 
             //get data from input databuf to local
             memcpy(data_raw,db_in->block[curblock_in].data_block,g_iSizeRead*sizeof(char));
-            
+
             // write new data to the gpu buffer
 			CUDASafeCallWithCleanUp(cudaMemcpy(g_pc4Data_d,
                 data_raw,
@@ -509,10 +494,6 @@ static void *run(hashpipe_thread_args_t * args)
             CopyDataForFFT<<<g_dimGCopy, g_dimBCopy>>>(g_pc4DataRead_d,
                 g_pf4FFTIn_d);
 
-            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn1_d,DEF_LEN_IDATA,1);
-            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn2_d,DEF_LEN_IDATA,2);
-            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn3_d,DEF_LEN_IDATA,3);
-            //FIR<<<g_dimGCopy, g_dimBCopy>>>(g_pf4FFTIn_d,g_FIRFFTIn4_d,DEF_LEN_IDATA,4);
 
             CUDASafeCallWithCleanUp(cudaThreadSynchronize());
             iCUDARet = cudaGetLastError();
@@ -531,7 +512,20 @@ static void *run(hashpipe_thread_args_t * args)
                 (void) fprintf(stderr, "ERROR! FFT failed!\n");
                 CleanUp();
             }
+            BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut1_d,
+                g_pf4FFTOut2_d,
+                g_pf4FFTOut3_d,
+                g_pf4FFTOut4_d,
+                g_pf4FFTOut5_d,
+                g_sumBatch1,
+                g_sumBatch2,
+                g_sumBatch3,
+                g_sumBatch4,
+                g_sumBatch5,
+                DEF_LEN_ODATA
 
+            );
+            /*
             BatchAccumulate<<<g_BatchAccumBlocks, g_BatchAccumThreads>>>(g_pf4FFTOut1_d,
                             1,
                             DEF_LEN_ODATA+1,
@@ -556,7 +550,7 @@ static void *run(hashpipe_thread_args_t * args)
                             16,
                             DEF_LEN_ODATA/16+1,
                             g_sumBatch5);
-                
+                */
             CUDASafeCallWithCleanUp(cudaThreadSynchronize());
             iCUDARet = cudaGetLastError();
             if (iCUDARet != cudaSuccess)
@@ -574,7 +568,7 @@ static void *run(hashpipe_thread_args_t * args)
             curblock_in = (curblock_in + 1) % db_in->header.n_block;
         }
 
-        /* //store whole spectrum untrimmed
+         //store whole spectrum untrimmed
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
             g_sumBatch1,
             (DEF_LEN_ODATA
@@ -604,8 +598,9 @@ static void *run(hashpipe_thread_args_t * args)
                         (DEF_LEN_ODATA/16
                         * sizeof(float)),
                         cudaMemcpyDeviceToHost));
-                            */
+                            
         //timmed spectrum
+        /*
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
                                         g_sumBatch1+DEF_LEN_ODATA/32, 
                                         (DEF_LEN_ODATA/32
@@ -635,7 +630,7 @@ static void *run(hashpipe_thread_args_t * args)
                                             (DEF_LEN_ODATA/32
                                             * sizeof(float)),
                                             cudaMemcpyDeviceToHost));
-                                                
+         */                                       
         memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
             //printf("Stokes to output done!\n");
         n_spec++; 
@@ -691,7 +686,9 @@ static void *run(hashpipe_thread_args_t * args)
 		//curblock_in = (curblock_in + 1) % db_in->header.n_block;
 		mcnt++;
 		/* Check for cancel */
-		pthread_testcancel();
+        pthread_testcancel();
+
+        return EXIT_SUCCESS;
 	}
 	CleanUp();
 }

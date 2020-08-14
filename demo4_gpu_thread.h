@@ -34,7 +34,7 @@
 #define DEF_LEN_ODATA       DEF_LEN_IDATA/2 //32768   
 #define NFFT                67108864 //65536
 
-#define DEF_ACC             2           // default number of spectra to accumulate
+#define DEF_ACC             64 //64 //50          // default number of spectra to accumulate 
 
 #define FFTPLAN_RANK        1
 
@@ -109,18 +109,33 @@ typedef unsigned char BYTE;
  */
 
 __global__ void CopyDataForFFT(char* pc4Data,
-                               float* pf4FFTIn);
+                               float* pf4FFTIn
+                               );
 int DoFFT(void);
 __global__ void Accumulate(float2 *pf4FFTOut,
                            float* pfSumStokes);
-__global__ void BatchAccumulate(float2 *pf4FFTOut,
+/*__global__ void BatchAccumulate(float2 *pf4FFTOut,
                             int numBatch,
                             int sizeBatch,
-                            float* pfSumStokes);
+                            float* pfSumStokes);*/
+__global__ void BatchAccumulate(float2 *g_pf4FFTOut1_d,
+                float2 *g_pf4FFTOut2_d,
+                float2 *g_pf4FFTOut3_d,
+                float2 *g_pf4FFTOut4_d,
+                float2 *g_pf4FFTOut5_d,
+                float* g_sumBatch1,
+                float* g_sumBatch2,
+                float* g_sumBatch3,
+                float* g_sumBatch4,
+                float* g_sumBatch5,
+                int len
+            );
+
 __global__ void FIR(float *FFTIn, 
                     float *FIRFFTIn,
                     int len,
                     int FFTnum);
+
 
 void CleanUp(void);
 

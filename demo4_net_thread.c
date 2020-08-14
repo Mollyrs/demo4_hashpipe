@@ -188,7 +188,6 @@ static void *run(hashpipe_thread_args_t * args){
 			while (!p_frame && run_threads());
 			if(!run_threads()) break;
  			
-
 			#ifdef TEST_MODE
 				if(npackets == 0){
 					get_header(p_frame,&pkt_header);
@@ -204,6 +203,7 @@ static void *run(hashpipe_thread_args_t * args){
 			memcpy(db->block[block_idx].data_block+i*BYTES_PER_PAYLOAD, PKT_UDP_DATA(p_frame), BYTES_PER_PAYLOAD*sizeof(unsigned char));
 			pthread_testcancel();
 		}
+
 
 		// Handle variable packet size!
 		int packet_size = PKT_UDP_SIZE(p_frame) - 8;
