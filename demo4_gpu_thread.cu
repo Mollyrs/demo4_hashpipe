@@ -568,7 +568,8 @@ static void *run(hashpipe_thread_args_t * args)
             curblock_in = (curblock_in + 1) % db_in->header.n_block;
         }
 
-         //store whole spectrum untrimmed
+         //store all spectrums untrimmed, concatenated into one output
+         /*
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
             g_sumBatch1,
             (DEF_LEN_ODATA
@@ -598,9 +599,9 @@ static void *run(hashpipe_thread_args_t * args)
                         (DEF_LEN_ODATA/16
                         * sizeof(float)),
                         cudaMemcpyDeviceToHost));
-                            
+                     */       
         //timmed spectrum
-        /*
+        
         CUDASafeCallWithCleanUp(cudaMemcpy(g_pf4SumStokes,
                                         g_sumBatch1+DEF_LEN_ODATA/32, 
                                         (DEF_LEN_ODATA/32
@@ -630,7 +631,7 @@ static void *run(hashpipe_thread_args_t * args)
                                             (DEF_LEN_ODATA/32
                                             * sizeof(float)),
                                             cudaMemcpyDeviceToHost));
-         */                                       
+                                               
         memcpy(db_out->block[curblock_out].Stokes_Full+SIZEOF_OUT_STOKES*n_spec,g_pf4SumStokes,SIZEOF_OUT_STOKES*sizeof(float));
             //printf("Stokes to output done!\n");
         n_spec++; 

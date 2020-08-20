@@ -30,11 +30,11 @@
 #define FALSE               0
 #define TRUE                1
 
-#define DEF_LEN_IDATA       67108864 //1048576
-#define DEF_LEN_ODATA       DEF_LEN_IDATA/2 //32768   
-#define NFFT                67108864 //65536
+#define DEF_LEN_IDATA       67108864 
+#define DEF_LEN_ODATA       DEF_LEN_IDATA/2   
+#define NFFT                67108864 
 
-#define DEF_ACC             64 //64 //50          // default number of spectra to accumulate 
+#define DEF_ACC             1          // default number of spectra to accumulate 
 
 #define FFTPLAN_RANK        1
 

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy 
 n = 1048576*32
-fp15=open('data_2020-08-13_18-24-56.fil','rb')
+fp15=open('data_2020-08-20_15-21-17.fil','rb')
 data=numpy.fromfile(fp15,dtype=numpy.float32)
 #data15=data[1:n-1]
 
